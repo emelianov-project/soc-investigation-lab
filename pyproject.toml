@@ -1,0 +1,18 @@
+[project]
+name = "soc-investigation-lab"
+version = "0.1.0"
+description = "Hands-on SOC investigation lab for Windows and Sysmon alert triage, detection engineering, incident analysis, MITRE ATT&CK mapping, and escalation."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+authors = [
+    { name = "emelianov-project" },
+]
+dependencies = []
+
+[dependency-groups]
+dev = []
+test = []
+
+[tool.uv]
+package = false
