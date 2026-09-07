@@ -11,8 +11,34 @@ authors = [
 dependencies = []
 
 [dependency-groups]
-dev = []
+dev = [
+    "mypy>=2.3.1",
+    "pre-commit>=4.6.2",
+    "ruff>=0.16.6",
+]
 test = []
 
 [tool.uv]
 package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "I",
+    "UP",
+    "B",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+pretty = true
+show_error_codes = true
+warn_unreachable = true
