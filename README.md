@@ -10,7 +10,7 @@ A SOC analyst must understand why a detection fired, establish the relevant even
 
 SOC Investigation Lab is designed to model that lifecycle in a small and understandable educational system. Its planned application capabilities will use controlled Windows Event Log and Sysmon examples so detection and investigation decisions can be reproduced and reviewed without live enterprise infrastructure.
 
-The primary audience is SOC Level 1 analysts, junior blue-team analysts, and learners developing practical investigation skills. The repository can also support higher-tier analysts reviewing escalation quality and detection-engineering learners examining rule behavior.
+The primary audience is SOC Level 1 analysts, junior blue-team analysts, and learners developing practical investigation skills. As later milestones add escalation outputs and executable detection rules, the project is intended to support higher-tier analysts reviewing escalation quality and detection-engineering learners examining rule behavior.
 
 ## Current Status
 
