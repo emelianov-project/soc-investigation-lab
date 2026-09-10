@@ -14,7 +14,7 @@ The primary audience is SOC Level 1 analysts, junior blue-team analysts, and lea
 
 ## Current Status
 
-The repository is currently preparing **v0.1.0 — Project Foundation**. This milestone has not been released yet.
+The repository has released **v0.1.0 — Project Foundation**.
 
 The engineering foundation is implemented, but the SOC application and its runtime processing pipeline are not implemented yet. Event processing begins in later milestones.
 
@@ -200,7 +200,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 
 | Milestone | Focus | Status |
 | --- | --- | --- |
-| v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | In progress |
+| v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
 | v0.2.0 — Event Processing | Windows and Sysmon parsing and normalized event contracts | Planned |
 | v0.3.0 — Detection Engine | Detection-rule format, loading, evaluation, and initial rules | Planned |
 | v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned |
