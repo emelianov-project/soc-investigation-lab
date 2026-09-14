@@ -8,7 +8,9 @@ license = "MIT"
 authors = [
     { name = "emelianov-project" },
 ]
-dependencies = []
+dependencies = [
+    "pydantic>=2,<3",
+]
 
 [dependency-groups]
 dev = [
