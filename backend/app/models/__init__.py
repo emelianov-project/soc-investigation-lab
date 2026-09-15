@@ -12,6 +12,7 @@ from .normalized_event import (
     NormalizedEvent,
     ProcessContext,
 )
+from .raw_event import RawWindowsEvent
 
 __all__ = (
     "AuthenticationContext",
@@ -24,4 +25,5 @@ __all__ = (
     "NetworkContext",
     "NormalizedEvent",
     "ProcessContext",
+    "RawWindowsEvent",
 )
