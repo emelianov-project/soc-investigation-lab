@@ -43,6 +43,7 @@ select = [
 [tool.mypy]
 python_version = "3.12"
 strict = true
+mypy_path = ["backend"]
 pretty = true
 show_error_codes = true
 warn_unreachable = true
