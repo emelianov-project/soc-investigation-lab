@@ -11,8 +11,7 @@ import pytest
 REPOSITORY_ROOT = Path(__file__).parents[2]
 sys.path.insert(0, str(REPOSITORY_ROOT / "backend"))
 
-# Mypy checks this top-level directory without applying the runtime import path.
-from app.models import (  # type: ignore[import-not-found]  # noqa: E402
+from app.models import (  # noqa: E402
     AuthenticationContext,
     DnsContext,
     EventCategory,
@@ -22,7 +21,7 @@ from app.models import (  # type: ignore[import-not-found]  # noqa: E402
     NormalizedEvent,
     ProcessContext,
 )
-from app.parsers import (  # type: ignore[import-not-found]  # noqa: E402
+from app.parsers import (  # noqa: E402
     InvalidNormalizedEventError,
     InvalidRawEventError,
     MalformedEventXmlError,
