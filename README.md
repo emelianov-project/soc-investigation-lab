@@ -8,25 +8,24 @@ The project favors transparent security logic, deterministic lab data, and expla
 
 A SOC analyst must understand why a detection fired, establish the relevant event context, gather evidence, identify indicators, reconstruct activity, decide whether the alert is a False Positive or True Positive, assess risk, and provide a useful escalation when required.
 
-SOC Investigation Lab is designed to model that lifecycle in a small and understandable educational system. Its planned application capabilities will use controlled Windows Event Log and Sysmon examples so detection and investigation decisions can be reproduced and reviewed without live enterprise infrastructure.
+SOC Investigation Lab is designed to model that lifecycle in a small and understandable educational system. Its implemented event-processing layer uses controlled Windows Event Log and Sysmon examples; detection and investigation decisions remain later milestones.
 
 The primary audience is SOC Level 1 analysts, junior blue-team analysts, and learners developing practical investigation skills. As later milestones add escalation outputs and executable detection rules, the project is intended to support higher-tier analysts reviewing escalation quality and detection-engineering learners examining rule behavior.
 
 ## Current Status
 
-The repository has released **v0.1.0 — Project Foundation**.
-
-The engineering foundation is implemented, but the SOC application and its runtime processing pipeline are not implemented yet. Event processing begins in later milestones.
+The repository has released **v0.1.0 — Project Foundation**. The **v0.2.0 — Event Processing** implementation is on `main` and its release artifacts are being prepared, but v0.2.0 has not yet been published. The event-normalization pipeline is implemented; downstream detection, alerts, and investigation are not.
 
 | Area | Status |
 | --- | --- |
 | Repository and module scaffold | Foundation implemented |
 | Python 3.12 and uv configuration | Implemented |
 | Ruff, mypy, and pre-commit tooling | Implemented |
-| pytest foundation and smoke test | Implemented |
+| pytest foundation, parser tests, and event-processing integration tests | Implemented |
 | GitHub Actions backend CI | Implemented |
 | Scope, architecture, contribution, security, and local-development documentation | Implemented |
-| Windows Event Log and Sysmon processing | Planned |
+| Windows Event XML ingestion and Security/Sysmon normalization | Implemented for seven supported events |
+| Typed normalized contexts, parser registry, and normalization pipeline | Implemented |
 | Detection engine and executable detection rules | Planned |
 | Alert management and analyst triage | Planned |
 | Investigation, enrichment, verdict, and escalation workflows | Planned |
@@ -47,19 +46,19 @@ Detailed goals, boundaries, and non-goals are maintained in the [Project Scope](
 
 ## Architecture
 
-### Planned application architecture
+### Application architecture
 
 The planned backend is a modular monolith: one Python application and deployment unit with explicit internal boundaries for parsing, normalization, detection, alert handling, investigation, enrichment, persistence, and API concerns.
 
 This approach keeps debugging and local execution straightforward, makes security decisions easier to inspect and test, and avoids infrastructure that is unnecessary for a portfolio lab. Module boundaries remain explicit so they can evolve when concrete requirements justify a change, without introducing speculative microservices.
 
-The planned processing flow is:
+The implemented v0.2.0 prefix is:
+
+`Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer → NormalizedEvent`
+
+The wider target processing flow continues from the normalized event into future stages:
 
 ```text
-Raw Security Event
-        ↓
-      Parser
-        ↓
  Normalized Event
         ↓
  Detection Engine
@@ -81,7 +80,7 @@ Severity / Priority
     Escalation
 ```
 
-This is a target logical flow, not a description of currently operational components. See [System Architecture](docs/architecture/overview.md) for component responsibilities and interaction rules.
+Only parsing and normalization through `NormalizedEvent` are operational. Detection and all downstream stages in the wider flow remain planned. See [Event Processing Architecture](docs/architecture/event-processing.md) for the implemented boundary and [System Architecture](docs/architecture/overview.md) for the wider plan.
 
 ## Features
 
@@ -91,14 +90,22 @@ This is a target logical flow, not a description of currently operational compon
 - Python 3.12 project metadata and reproducible dependency management with uv.
 - Ruff linting, import sorting, and formatting checks.
 - Strict mypy type-checking configuration.
-- pytest test layout with one foundation smoke test.
+- pytest test layout and foundation smoke test.
 - Local pre-commit validation hooks.
 - Pull-request CI through the `Backend quality` check.
 - Documented project scope, planned architecture, contribution workflow, security policy, and local-development conventions.
 
-### Planned SOC capabilities
+### Event processing implemented for v0.2.0
 
-- Windows Event Log and Sysmon parsing and normalization.
+- Ingestion of one namespaced Windows Event XML record at a time.
+- Windows Security Events 4624, 4625, and 4688 and Sysmon Events 1, 3, 11, and 22 normalized into typed event contexts.
+- Explicit parser registry and public XML-to-`NormalizedEvent` pipeline.
+- Synthetic fixtures, focused parser tests, and end-to-end integration and failure-path tests.
+
+This implementation is prepared for v0.2.0 but has not yet been published as that release.
+
+### Planned downstream SOC capabilities
+
 - Transparent, rule-based detection evaluation with traceable detection matches.
 - Alert creation, lifecycle management, and analyst triage.
 - Investigation records containing evidence, related activity, timelines, and analyst notes.
@@ -108,7 +115,7 @@ This is a target logical flow, not a description of currently operational compon
 - Structured escalation reports and investigation cases.
 - A backend API and analyst-focused web interface.
 
-The planned capabilities above are roadmap targets and are not currently available as runnable application features.
+The downstream capabilities above are roadmap targets and are not currently runnable.
 
 ## Investigation Workflow
 
@@ -124,7 +131,7 @@ The target analyst workflow is:
 8. Assess severity and operational priority.
 9. Prepare escalation context and recommended actions when necessary.
 
-This workflow is planned. The v0.1.0 foundation does not yet execute these steps.
+Only step 2 is implemented for the seven supported XML event identities. The complete analyst workflow remains planned.
 
 ## Detection Coverage
 
@@ -143,14 +150,14 @@ Rule names, rule counts, and measurable coverage will be documented only when co
 
 | Path | Responsibility | Current state |
 | --- | --- | --- |
-| `backend/` | Planned Python backend modules plus the established backend test foundation | Application directories are placeholders; tests are partially established |
+| `backend/` | Python event models, ingestion, source normalizers, registry, pipeline, and backend tests | Event-processing layer implemented; later application modules remain placeholders |
 | `frontend/` | Planned analyst-facing web interface | Foundation placeholder |
 | `rules/` | Planned transparent detection-rule library, initially for Windows | Foundation placeholders |
 | `datasets/` | Future synthetic, controlled-lab, or public-safe telemetry | Foundation placeholders; no datasets included |
 | `cases/` | Planned investigation scenarios and expected analyst outcomes | Foundation placeholder |
 | `docs/` | Project scope, architecture, tooling, testing, security-related, and local-development guidance | Partially established |
 | `scripts/` | Future narrowly scoped project and development utilities | Foundation placeholder |
-| `tests/` | Shared fixtures and future cross-component integration tests | Foundation placeholders |
+| `tests/` | Synthetic Windows/Sysmon fixtures and cross-component integration tests | Event-processing fixtures and tests implemented |
 | `.github/` | Pull-request CI and future repository collaboration configuration | Backend CI implemented |
 
 Placeholder directories describe intended ownership; they do not demonstrate completed functionality.
@@ -168,7 +175,7 @@ Clone the repository and install the current development and test dependencies:
 ```console
 git clone https://github.com/emelianov-project/soc-investigation-lab.git
 cd soc-investigation-lab
-uv sync --group dev --group test
+uv sync --locked --group dev --group test
 ```
 
 Optionally install the configured local hooks:
@@ -177,7 +184,7 @@ Optionally install the configured local hooks:
 uv run pre-commit install
 ```
 
-There is currently no runnable SOC application in the v0.1.0 foundation, and no application-specific environment variables are required. Local configuration conventions are documented in [Local Development](docs/local-development.md).
+There is no runnable end-to-end SOC application yet. The v0.2.0 XML normalization entry point is available as a Python function; no application-specific environment variables are required. Local configuration conventions are documented in [Local Development](docs/local-development.md).
 
 ## Development
 
@@ -185,11 +192,14 @@ Run the current local validation sequence before opening or updating a Pull Requ
 
 ```console
 uv lock --check
-uv sync --group dev --group test
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy backend/tests
-uv run --group test pytest
+uv sync --locked --group dev --group test
+git diff --check
+uv run --no-sync ruff check .
+uv run --no-sync ruff format --check .
+uv run --no-sync mypy backend/tests
+uv run --no-sync mypy tests/integration
+uv run --no-sync pytest
+uv run --no-sync pre-commit run --all-files
 ```
 
 Ruff provides linting and formatting validation, mypy performs static type checking, pytest runs the automated test suite, and pre-commit runs the configured Python quality hooks. GitHub Actions repeats the backend quality gates for Pull Requests targeting `main`.
@@ -201,7 +211,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | Milestone | Focus | Status |
 | --- | --- | --- |
 | v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
-| v0.2.0 — Event Processing | Windows and Sysmon parsing and normalized event contracts | Planned |
+| v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Implemented; release preparation |
 | v0.3.0 — Detection Engine | Detection-rule format, loading, evaluation, and initial rules | Planned |
 | v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned |
 | v0.5.0 — Investigation Workflow | Evidence, timelines, analyst notes, verdicts, and escalation | Planned |
@@ -211,12 +221,14 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | v0.9.0 — Hardening & Documentation | Security, reliability, documentation, and portfolio refinement | Planned |
 | v1.0.0 — Portfolio Release | Coherent end-to-end portfolio release | Planned |
 
-Roadmap entries describe planned work, not released or implemented capabilities. No milestone dates are implied.
+Status distinguishes implemented work from published releases and future plans. No milestone dates are implied.
 
 ## Documentation
 
 - [Project Scope](docs/project-scope.md) — purpose, users, product boundaries, and non-goals.
-- [System Architecture](docs/architecture/overview.md) — planned components, responsibilities, and data flow.
+- [System Architecture](docs/architecture/overview.md) — implemented and planned components, responsibilities, and data flow.
+- [Event Processing Architecture](docs/architecture/event-processing.md) — implemented v0.2.0 pipeline and examples.
+- [Prepared v0.2.0 Release Notes](docs/releases/v0.2.0.md) — release scope and publication gates; v0.2.0 is not yet published.
 - [Contributing Guide](CONTRIBUTING.md) — Issue, branch, validation, Pull Request, and merge workflow.
 - [Security and Safe Data Handling Policy](SECURITY.md) — public-repository data and reporting requirements.
 - [Development Tooling](docs/development-tooling.md) — Ruff, mypy, and pre-commit commands.

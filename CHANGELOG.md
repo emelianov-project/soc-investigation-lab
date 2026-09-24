@@ -7,6 +7,21 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.2.0] - Unreleased (release preparation)
+
+### Added
+
+- Typed normalized-event domain models and Windows Event XML ingestion for one record at a time.
+- Windows Security normalization for Events 4624, 4625, and 4688.
+- Sysmon normalization for Events 1, 3, 11, and 22.
+- Explicit parser registry and XML-to-normalized-event pipeline.
+- Synthetic Windows Security and Sysmon fixtures, with integration and failure-path coverage.
+- Implemented event-processing architecture documentation and examples.
+
+### Changed
+
+- Aligned strict mypy backend import resolution across direct checks and pre-commit.
+
 ## [0.1.0] - 2026-09-10
 
 ### Added
