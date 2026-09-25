@@ -102,7 +102,7 @@ The project is also not intended to provide production-grade multi-tenancy, ente
 
 ## Current Implementation Status
 
-At the current Project Foundation milestone, the repository contains engineering infrastructure rather than the SOC application functionality described above. The implemented foundation consists of the repository structure, Python project configuration, uv dependency management, development tooling, an automated test foundation, and GitHub Actions continuous integration.
+The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. The foundation provides repository structure, Python project configuration, uv dependency management, development tooling, automated tests, and GitHub Actions continuous integration. Event Processing ingests supported Windows Event XML, provides typed raw and normalized event contracts, and normalizes supported Windows Security and Sysmon events through an explicit parser registry and pipeline. Synthetic fixtures and integration and failure-path tests cover that boundary. It processes one XML record at a time; live telemetry collection and binary `.evtx` ingestion are not implemented.
 
-Event processing, normalization, detection, alert management, investigation workflows, enrichment, investigation cases, the backend API, and the analyst web interface are planned for subsequent milestones. Planned capabilities in this document must not be interpreted as currently available functionality.
+v0.3.0 — Detection Engine is the next planned milestone, not an implemented capability. Detection rules and their evaluation runtime, detection matches, alerts, investigation workflows and cases, enrichment, persistence, the backend API, and the analyst web interface remain planned. Planned capabilities in this document must not be interpreted as currently available functionality.
 

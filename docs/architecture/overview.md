@@ -2,7 +2,7 @@
 
 ## Architecture Status
 
-This document describes the high-level architecture of SOC Investigation Lab. v0.1.0 Project Foundation is released. The v0.2.0 event-processing boundary is implemented on `main` but has not yet been released; detection, alerts, investigation, and later application components remain planned. Repository directory names alone do not establish that a capability is implemented. For the current parsing and normalization design, see [Event Processing Architecture](event-processing.md).
+This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. Parsing and normalization of supported Windows Event XML into a validated `NormalizedEvent` are implemented. Detection Engine, detection-rule evaluation and matches, alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned; v0.3.0 — Detection Engine is the next planned milestone. Repository directory names alone do not establish that a capability is implemented. For the current parsing and normalization design, see [Event Processing Architecture](event-processing.md).
 
 The architecture defines conceptual responsibilities and data flow. It does not prescribe low-level classes, database tables, endpoints, or deployment topology.
 
@@ -29,7 +29,7 @@ Internal boundaries should remain explicit so responsibilities can be tested ind
 
 ## High-Level Data Flow
 
-The implemented pipeline ends at `NormalizedEvent`: Windows Event XML → `RawWindowsEvent` → parser registry → source normalizer → `NormalizedEvent`. The remaining high-level pipeline below is planned, not implemented:
+The implemented pipeline ends at `NormalizedEvent`: Windows Event XML → `RawWindowsEvent` → parser registry → source normalizer → `NormalizedEvent`. The broader high-level flow below includes that implemented boundary; stages after `NormalizedEvent` remain planned, not implemented:
 
 Raw Security Event
 → Source Parser
@@ -188,9 +188,9 @@ Controlled telemetry must not include production credentials, secrets, personal 
 
 ## Planned Evolution
 
-The architecture is planned to evolve through these roadmap stages:
+The roadmap includes a completed event-processing stage and planned future stages:
 
-- **v0.2.0 — Event processing and normalization:** supported event parsing, validation, and normalized-event contracts are implemented on `main`; v0.2.0 is not yet released.
+- **v0.2.0 — Event processing and normalization:** released and completed, with supported event parsing, validation, and normalized-event contracts.
 - **v0.3.x — Detection engine and detection rules:** introduce the rule format, rule loading, deterministic evaluation, and the initial Windows rule library.
 - **v0.4.x — Alert management:** introduce alert generation, alert models, severity handling, lifecycle state, and the analyst alert queue backend.
 - **v0.5.x — Investigation workflow:** introduce triage, related-event analysis, evidence, timelines, analyst notes, verdicts, and escalation workflow.
@@ -198,7 +198,7 @@ The architecture is planned to evolve through these roadmap stages:
 - **v0.7.x — Investigation cases:** introduce documented investigation scenarios with evidence, timelines, mappings, verdicts, and escalation reports.
 - **v0.8.x — Analyst web interface:** introduce the analyst-facing experience for alerts, investigations, timelines, IOC context, verdicts, and reports.
 
-Except for the implemented, unreleased v0.2.0 event-processing boundary, these are planned architecture stages, not statements that the corresponding versions or capabilities have been released. Testing, validation, and documentation should evolve alongside each capability.
+The v0.2.0 event-processing boundary is released. Every later stage above remains planned; the corresponding versions and capabilities have not been released or implemented. Testing, validation, and documentation should evolve alongside each capability.
 
 Module boundaries may be refined as concrete requirements emerge. A distributed design should be considered only if measured constraints justify it; future refactoring should not be driven by speculative scale. Until then, the modular monolith remains the planned deployment and development model.
 
