@@ -14,7 +14,7 @@ The primary audience is SOC Level 1 analysts, junior blue-team analysts, and lea
 
 ## Current Status
 
-The repository has released **v0.1.0 — Project Foundation**. The **v0.2.0 — Event Processing** implementation is on `main` and its release artifacts are being prepared, but v0.2.0 has not yet been published. The event-normalization pipeline is implemented; downstream detection, alerts, and investigation are not.
+The repository has released **v0.1.0 — Project Foundation** and **v0.2.0 — Event Processing**. Windows Event XML ingestion and normalization for seven supported Windows Security and Sysmon event identities are implemented. Parsing and normalization through `NormalizedEvent` are operational; downstream detection, alerts, and investigation remain planned. **v0.3.0 — Detection Engine** is the next planned milestone.
 
 | Area | Status |
 | --- | --- |
@@ -102,7 +102,7 @@ Only parsing and normalization through `NormalizedEvent` are operational. Detect
 - Explicit parser registry and public XML-to-`NormalizedEvent` pipeline.
 - Synthetic fixtures, focused parser tests, and end-to-end integration and failure-path tests.
 
-This implementation is prepared for v0.2.0 but has not yet been published as that release.
+This event-processing implementation was released in v0.2.0.
 
 ### Planned downstream SOC capabilities
 
@@ -211,7 +211,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | Milestone | Focus | Status |
 | --- | --- | --- |
 | v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
-| v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Implemented; release preparation |
+| v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Released |
 | v0.3.0 — Detection Engine | Detection-rule format, loading, evaluation, and initial rules | Planned |
 | v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned |
 | v0.5.0 — Investigation Workflow | Evidence, timelines, analyst notes, verdicts, and escalation | Planned |
@@ -228,7 +228,7 @@ Status distinguishes implemented work from published releases and future plans. 
 - [Project Scope](docs/project-scope.md) — purpose, users, product boundaries, and non-goals.
 - [System Architecture](docs/architecture/overview.md) — implemented and planned components, responsibilities, and data flow.
 - [Event Processing Architecture](docs/architecture/event-processing.md) — implemented v0.2.0 pipeline and examples.
-- [Prepared v0.2.0 Release Notes](docs/releases/v0.2.0.md) — release scope and publication gates; v0.2.0 is not yet published.
+- [v0.2.0 Release Notes](docs/releases/v0.2.0.md) — published event-processing release scope, validation, and limitations.
 - [Contributing Guide](CONTRIBUTING.md) — Issue, branch, validation, Pull Request, and merge workflow.
 - [Security and Safe Data Handling Policy](SECURITY.md) — public-repository data and reporting requirements.
 - [Development Tooling](docs/development-tooling.md) — Ruff, mypy, and pre-commit commands.
