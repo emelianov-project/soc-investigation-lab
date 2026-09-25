@@ -2,14 +2,14 @@
 
 ## Status
 
-This document defines the implementation contract for **v0.2.0 — Event Processing**.
-Event-processing runtime functionality is not yet implemented at the time this document is
-introduced, and v0.2.0 has not been released.
+This document records the historical implementation contract that governed the completed
+**v0.2.0 — Event Processing** milestone. The event-processing runtime was implemented and
+v0.2.0 was released.
 
-The contract constrains the implementation work in Issues #28 through #34. Issue #35 will
-later document the implemented event-processing architecture and representative examples,
-while Issue #36 will prepare the milestone's release artifacts. This document describes
-required behavior and boundaries, not completed functionality.
+The contract governed implementation work in Issues #28 through #34. Issue #35 documented
+the implemented event-processing architecture and representative examples, while Issue #36
+prepared the milestone's release artifacts. This document preserves the required behavior
+and boundaries as a historical contract; it is not the current implementation guide.
 
 ## Purpose
 
@@ -149,8 +149,8 @@ Event record ID is optional common metadata. Each event also contains one typed,
 category-specific context appropriate to its normalized category and a controlled
 `source_data` representation for relevant source fields that have no normalized equivalent.
 
-Issue #28 may refine the exact Python and Pydantic field names, but its implementation must
-preserve the semantics and required-versus-optional distinctions defined here.
+Issue #28 refined the exact Python and Pydantic field names while preserving the semantics
+and required-versus-optional distinctions defined here.
 
 ## Normalized Categories
 
@@ -307,7 +307,7 @@ Examples include:
 Processing must fail through explicit normalization or validation semantics and must not
 substitute invented fallback values.
 
-Issues #30 through #34 will implement and test these failure semantics.
+Issues #30 through #34 implemented and tested these failure semantics.
 
 ## Determinism and Purity Expectations
 
@@ -397,7 +397,7 @@ SIEM, EDR, SOAR, or speculative distributed-system functionality.
 
 ## Implementation Mapping
 
-The existing v0.2.0 backlog maps to this contract as follows:
+The completed v0.2.0 work maps to this contract as follows:
 
 - Issue #28 — normalized event domain models;
 - Issue #29 — synthetic Windows and Sysmon fixtures;
@@ -409,7 +409,7 @@ The existing v0.2.0 backlog maps to this contract as follows:
 - Issue #35 — implemented architecture and examples; and
 - Issue #36 — release preparation.
 
-This document is the scope baseline those Issues must remain consistent with. Later work may
+This document is the scope baseline that governed those Issues. Later work may
 refine implementation details, but any material expansion of providers, Event IDs, normalized
 semantics, or milestone boundaries requires separately scoped review.
 
