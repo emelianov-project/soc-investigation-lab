@@ -2,12 +2,12 @@
 
 ## Status and boundary
 
-The v0.2.0 event-processing implementation is on `main`, but v0.2.0 has not
-yet been released. It transforms one supported Windows Event XML record into a
-validated `NormalizedEvent`. The boundary ends there: detection is planned for
-v0.3.0, not part of the current runtime. The original requirements are recorded
-in the [event-processing scope](../event-processing-scope.md); this document
-describes the implementation as it exists now.
+**v0.2.0 — Event Processing** is released. Its implementation transforms one
+supported Windows Event XML record into a validated `NormalizedEvent`. The
+boundary ends there: detection is planned for v0.3.0, not part of the current
+runtime. The original requirements are recorded in the
+[event-processing scope](../event-processing-scope.md); this document describes
+the implementation as it exists now.
 
 ## Implemented flow
 
