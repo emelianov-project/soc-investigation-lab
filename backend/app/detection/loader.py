@@ -11,7 +11,8 @@ from yaml.nodes import MappingNode, ScalarNode
 
 from app.models import DetectionRule
 
-from .errors import DetectionRuleFileError, DuplicateDetectionRuleIdError
+from .errors import DetectionEvaluationError, DetectionRuleFileError, DuplicateDetectionRuleIdError
+from .semantics import validate_detection_rule_semantics
 
 
 class _UnsafeYamlError(ValueError):
@@ -131,8 +132,10 @@ def _load_file(root: Path, path: Path) -> DetectionRule:
     if not isinstance(document, dict) or not document:
         raise DetectionRuleFileError(relative, "invalid_document")
     try:
-        return DetectionRule.model_validate(document)
-    except ValidationError:
+        rule = DetectionRule.model_validate(document)
+        validate_detection_rule_semantics(rule)
+        return rule
+    except (ValidationError, DetectionEvaluationError):
         raise DetectionRuleFileError(relative, "invalid_rule") from None
 
 

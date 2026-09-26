@@ -15,7 +15,6 @@ sys.path.insert(0, str(REPOSITORY_ROOT / "backend"))
 from app.detection import (  # noqa: E402
     DetectionRuleFileError,
     DuplicateDetectionRuleIdError,
-    IncompatibleDetectionConditionError,
     InvalidDetectionFieldError,
     evaluate_condition,
     evaluate_event,
@@ -320,15 +319,23 @@ def test_target_filtering_precedes_incompatible_context_evaluation(
         _rule_yaml(
             category="process" if target == "category" else "authentication",
             sources="sources: [sysmon]\n" if target == "source" else "",
-            condition="field: context.image\nop: ends_with\nvalue: '\\cmd.exe'\n",
+            condition=(
+                "field: context.image\nop: ends_with\nvalue: '\\cmd.exe'\n"
+                if target == "category"
+                else "field: context.outcome\nop: equals\nvalue: success\n"
+            ),
         ),
     )
     normalized = normalize_windows_event_xml(_xml(SUCCESSFUL_LOGON))
     rules = load_detection_rules(tmp_path)
     assert len(rules) == 1
-    # A direct evaluation would fail; the engine must filter before that boundary.
-    with pytest.raises(InvalidDetectionFieldError):
-        evaluate_condition(normalized, rules[0].condition)
+    if target == "category":
+        # Valid for the rule's process category, but not this authentication event.
+        with pytest.raises(InvalidDetectionFieldError):
+            evaluate_condition(normalized, rules[0].condition)
+    else:
+        # The condition matches, but the event's source is not in the target set.
+        assert evaluate_condition(normalized, rules[0].condition).outcome is ConditionOutcome.TRUE
     assert evaluate_event(normalized, rules) == ()
 
 
@@ -389,41 +396,27 @@ def test_duplicate_yaml_rule_ids_fail_the_whole_load_even_across_versions(tmp_pa
 
 
 @pytest.mark.parametrize(
-    ("condition", "error_type", "field"),
+    "condition",
     [
-        (
-            "field: context.nonexistent_field\nop: equals\nvalue: example\n",
-            InvalidDetectionFieldError,
-            "context.nonexistent_field",
-        ),
-        (
-            'field: event_id\nop: contains\nvalue: "46"\n',
-            IncompatibleDetectionConditionError,
-            "event_id",
-        ),
+        "field: context.nonexistent_field\nop: equals\nvalue: example\n",
+        'field: event_id\nop: contains\nvalue: "46"\n',
     ],
 )
-def test_loaded_semantic_errors_abort_evaluation_without_partial_matches(
+def test_semantic_yaml_errors_abort_loading_without_partial_rules(
     tmp_path: Path,
     condition: str,
-    error_type: type[InvalidDetectionFieldError | IncompatibleDetectionConditionError],
-    field: str,
 ) -> None:
     _write_rule(tmp_path, "a.yaml", _rule_yaml("a-valid-match"))
-    _write_rule(tmp_path, "b.yaml", _rule_yaml("b-semantic-error", condition=condition))
     normalized = normalize_windows_event_xml(_xml(SECURITY_PROCESS))
-    rules = load_detection_rules(tmp_path)
-    assert [rule.id for rule in rules] == ["a-valid-match", "b-semantic-error"]
-    assert [match.rule_id for match in evaluate_event(normalized, rules[:1])] == ["a-valid-match"]
-    # The valid first match must not escape when the later applicable rule fails.
-    with pytest.raises(error_type) as caught:
-        evaluate_event(normalized, rules)
-    assert isinstance(
-        caught.value, (InvalidDetectionFieldError, IncompatibleDetectionConditionError)
-    )
-    assert caught.value.field == field
-    if isinstance(caught.value, IncompatibleDetectionConditionError):
-        assert caught.value.operator == "contains"
-        assert caught.value.reason == "incompatible_field_type"
+    assert [
+        match.rule_id for match in evaluate_event(normalized, load_detection_rules(tmp_path))
+    ] == ["a-valid-match"]
+    _write_rule(tmp_path, "nested/b.yaml", _rule_yaml("b-semantic-error", condition=condition))
+    with pytest.raises(DetectionRuleFileError) as caught:
+        load_detection_rules(tmp_path)
+    assert caught.value.path == "nested/b.yaml"
+    assert caught.value.category == "invalid_rule"
+    assert caught.value.__suppress_context__
+    assert str(tmp_path) not in str(caught.value)
     assert normalized.computer not in str(caught.value)
     assert "synthetic-fixture" not in str(caught.value)
