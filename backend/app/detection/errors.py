@@ -1,4 +1,4 @@
-"""Controlled failures at the rule-loading and condition-evaluation boundaries."""
+"""Controlled failures at the loading, evaluation, and engine boundaries."""
 
 
 class DetectionRuleLoadError(ValueError):
@@ -26,6 +26,16 @@ class DuplicateDetectionRuleIdError(DetectionRuleLoadError):
 
 class DetectionEvaluationError(ValueError):
     """A condition could not be evaluated; no partial trace is returned."""
+
+
+class DetectionEngineError(DetectionEvaluationError):
+    """Invalid engine inputs or match construction, without event/operand contents."""
+
+    def __init__(self, reason: str, rule_id: str | None = None) -> None:
+        self.reason = reason
+        self.rule_id = rule_id
+        context = f"rule {rule_id!r}: " if rule_id is not None else ""
+        super().__init__(f"{context}{reason}")
 
 
 class InvalidDetectionFieldError(DetectionEvaluationError):

@@ -1,6 +1,8 @@
-"""Public rule-loading and single-condition evaluation APIs."""
+"""Public rule-loading, condition-evaluation, and stateless engine APIs."""
 
+from .engine import evaluate_event
 from .errors import (
+    DetectionEngineError,
     DetectionEvaluationError,
     DetectionRuleFileError,
     DetectionRuleLoadError,
@@ -18,6 +20,7 @@ from .evaluator import (
 from .loader import load_detection_rules
 
 __all__ = (
+    "DetectionEngineError",
     "DetectionEvaluationError",
     "DetectionRuleFileError",
     "DetectionRuleLoadError",
@@ -28,6 +31,7 @@ __all__ = (
     "InvalidDetectionFieldError",
     "ResolvedField",
     "evaluate_condition",
+    "evaluate_event",
     "load_detection_rules",
     "resolve_event_field",
 )
