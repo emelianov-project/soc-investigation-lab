@@ -1,5 +1,6 @@
 """Offline rule-loading contracts using isolated synthetic YAML libraries."""
 
+import json
 import os
 import stat
 from pathlib import Path
@@ -14,7 +15,7 @@ from app.detection import (
     load_detection_rules,
 )
 from app.detection.loader import _checked_path
-from app.models import DetectionRule
+from app.models import DetectionOperator, DetectionRule
 
 
 def rule_yaml(rule_id: str = "example-process", version: int = 1) -> str:
@@ -365,3 +366,205 @@ def test_nested_condition_and_source_scope_validate_through_domain_model(tmp_pat
             },
         }
     )
+
+
+def semantic_rule(
+    condition: dict[str, object],
+    categories: tuple[str, ...] = ("process",),
+    sources: tuple[str, ...] | None = None,
+) -> str:
+    """JSON is a YAML subset; quoted IP/time strings retain their intended type."""
+    document: dict[str, object] = {
+        "id": "semantic-example",
+        "version": 1,
+        "title": "Synthetic semantic example",
+        "description": "Offline validation example.",
+        "categories": list(categories),
+        "condition": condition,
+    }
+    if sources is not None:
+        document["sources"] = list(sources)
+    return json.dumps(document)
+
+
+EQUALITY = {"equals", "not_equals", "in", "not_in", "exists", "not_exists"}
+STRING_OPERATORS = EQUALITY | {"contains", "contains_any", "starts_with", "ends_with"}
+INTEGER_OPERATORS = EQUALITY | {"greater_than", "greater_or_equal", "less_than", "less_or_equal"}
+
+
+@pytest.mark.parametrize("operator", list(DetectionOperator))
+@pytest.mark.parametrize(
+    ("field", "literal", "allowed"),
+    [
+        ("context.protocol", "tcp", STRING_OPERATORS),
+        ("event_id", 3, INTEGER_OPERATORS),
+        ("timestamp", "2026-09-26T15:00:00+03:00", EQUALITY),
+        ("context.destination_ip", "2001:db8::1", EQUALITY | {"ip_in_cidr"}),
+    ],
+)
+def test_load_time_operator_type_matrix(
+    tmp_path: Path, operator: DetectionOperator, field: str, literal: object, allowed: set[str]
+) -> None:
+    condition: dict[str, object] = {"field": field, "op": operator.value}
+    if operator.value not in {"exists", "not_exists"}:
+        value = literal
+        if operator.value in {"contains", "contains_any", "starts_with", "ends_with"}:
+            value = "example"
+        elif operator.value in {"greater_than", "greater_or_equal", "less_than", "less_or_equal"}:
+            value = 1
+        elif operator.value == "ip_in_cidr":
+            value = "2001:db8::/32"
+        condition["value"] = (
+            [value] if operator.value in {"in", "not_in", "contains_any"} else value
+        )
+    content = semantic_rule(condition, ("network",))
+    # These cases all pass structural validation; only semantic acceptance varies.
+    expected = DetectionRule.model_validate_json(content)
+    write_rule(tmp_path, "rule.yaml", content)
+    if operator.value in allowed:
+        assert load_detection_rules(tmp_path) == (expected,)
+    else:
+        with pytest.raises(DetectionRuleFileError, match="invalid_rule"):
+            load_detection_rules(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("field", "op", "value"),
+    [
+        ("event_id", "equals", "1"),
+        ("event_id", "not_equals", "1"),
+        ("event_id", "in", ["1"]),
+        ("event_id", "not_in", ["1"]),
+        ("provider", "equals", 1),
+        ("provider", "in", [1]),
+        ("timestamp", "equals", "not-a-timestamp"),
+        ("timestamp", "equals", "2026-09-26T12:00:00"),
+        ("timestamp", "in", ["2026-09-26T12:00:00Z", "invalid"]),
+        ("timestamp", "not_in", ["2026-09-26T12:00:00Z", "2026-09-26T12:00:00"]),
+        ("context.source_ip", "equals", "invalid-ip"),
+        ("context.source_ip", "not_equals", "192.0.2.999"),
+        ("context.source_ip", "in", ["192.0.2.10", "invalid-ip"]),
+        ("context.source_ip", "not_in", ["2001:db8::1", "invalid-ip"]),
+        ("context.source_ip", "ip_in_cidr", "invalid-cidr"),
+        ("context.source_ip", "ip_in_cidr", "192.0.2.0/99"),
+        ("context.source_ip", "ip_in_cidr", "192.0.2.1/24"),
+        ("context.source_ip", "ip_in_cidr", "2001:db8::/129"),
+        ("context.nonexistent_field", "equals", "example"),
+    ],
+)
+def test_semantic_invalid_literals_abort_whole_load_with_safe_context(
+    tmp_path: Path, field: str, op: str, value: object
+) -> None:
+    content = semantic_rule({"field": field, "op": op, "value": value}, ("authentication",))
+    DetectionRule.model_validate_json(content)
+    write_rule(tmp_path, "a-valid.yaml")
+    write_rule(tmp_path, "nested/z-invalid.yaml", content)
+    with pytest.raises(DetectionRuleFileError) as caught:
+        load_detection_rules(tmp_path)
+    assert caught.value.path == "nested/z-invalid.yaml"
+    assert caught.value.category == "invalid_rule"
+    assert str(caught.value) == "'nested/z-invalid.yaml': invalid_rule"
+    assert caught.value.__suppress_context__
+    assert caught.value.__cause__ is None
+
+
+@pytest.mark.parametrize(
+    ("categories", "field", "op", "value", "valid"),
+    [
+        (("process", "dns"), "context.image", "ends_with", "example.exe", False),
+        (("dns", "process"), "context.image", "exists", None, False),
+        (("network", "file", "dns"), "context.process_id", "greater_than", 100, True),
+        (("authentication", "network"), "context.source_ip", "ip_in_cidr", "192.0.2.0/24", True),
+        (("process", "authentication"), "context.user", "contains", "example", True),
+        (("process", "authentication"), "context.process_id", "not_exists", None, False),
+    ],
+)
+def test_every_target_category_must_support_context_field(
+    tmp_path: Path, categories: tuple[str, ...], field: str, op: str, value: object, valid: bool
+) -> None:
+    condition: dict[str, object] = {"field": field, "op": op}
+    if op not in {"exists", "not_exists"}:
+        condition["value"] = value
+    write_rule(tmp_path, "multi.yaml", semantic_rule(condition, categories))
+    if valid:
+        assert len(load_detection_rules(tmp_path)) == 1
+    else:
+        with pytest.raises(DetectionRuleFileError, match="invalid_rule"):
+            load_detection_rules(tmp_path)
+
+
+@pytest.mark.parametrize("kind", ["all", "any", "not"])
+def test_semantics_visit_invalid_nested_leaves(tmp_path: Path, kind: str) -> None:
+    bad = {"field": "context.nonexistent_field", "op": "exists"}
+    good = {"field": "event_id", "op": "exists"}
+    nested = {"not": bad} if kind == "not" else {kind: [good, {"not": bad}]}
+    write_rule(tmp_path, "nested.yaml", semantic_rule({"all": [good, nested]}))
+    with pytest.raises(DetectionRuleFileError, match="invalid_rule"):
+        load_detection_rules(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("op", "value", "valid"),
+    [
+        ("contains", "example", True),
+        ("contains_any", ["example", "other"], True),
+        ("equals", "1", True),
+        ("equals", "not-an-ip-or-timestamp", True),
+        ("in", ["1", "192.0.2.10", "2026-09-26T12:00:00"], True),
+        ("equals", 1, False),
+        ("greater_than", 1, False),
+        ("ip_in_cidr", "192.0.2.0/24", False),
+    ],
+)
+def test_source_data_is_scoped_retained_text(
+    tmp_path: Path, op: str, value: object, valid: bool
+) -> None:
+    condition = {"field": "source_data.ExampleField", "op": op, "value": value}
+    write_rule(tmp_path, "source.yaml", semantic_rule(condition, sources=("sysmon",)))
+    if valid:
+        assert (
+            load_detection_rules(tmp_path)[0].condition
+            == DetectionRule.model_validate_json(
+                semantic_rule(condition, sources=("sysmon",))
+            ).condition
+        )
+    else:
+        with pytest.raises(DetectionRuleFileError, match="invalid_rule"):
+            load_detection_rules(tmp_path)
+
+
+def test_source_data_still_requires_sources_at_load_time(tmp_path: Path) -> None:
+    write_rule(
+        tmp_path, "source.yaml", semantic_rule({"field": "source_data.Example", "op": "exists"})
+    )
+    with pytest.raises(DetectionRuleFileError, match="invalid_rule"):
+        load_detection_rules(tmp_path)
+
+
+@pytest.mark.parametrize("op", ["equals", "greater_than", "in"])
+def test_boolean_operands_never_become_integer_literals(tmp_path: Path, op: str) -> None:
+    value: object = [True] if op == "in" else True
+    write_rule(
+        tmp_path, "bool.yaml", semantic_rule({"field": "event_id", "op": op, "value": value})
+    )
+    with pytest.raises(DetectionRuleFileError, match="invalid_rule"):
+        load_detection_rules(tmp_path)
+
+
+@pytest.mark.parametrize("op", ["equals", "not_equals", "in", "not_in"])
+@pytest.mark.parametrize(
+    ("field", "literal"),
+    [
+        ("timestamp", "2026-09-26T12:00:00Z"),
+        ("timestamp", "2026-09-26T15:00:00+03:00"),
+        ("context.source_ip", "192.0.2.10"),
+        ("context.source_ip", "2001:0db8:0000:0000:0000:0000:0000:0001"),
+    ],
+)
+def test_valid_typed_literals_load_without_mutating_rule_text(
+    tmp_path: Path, op: str, field: str, literal: str
+) -> None:
+    value: object = [literal] if op in {"in", "not_in"} else literal
+    content = semantic_rule({"field": field, "op": op, "value": value}, ("authentication",))
+    write_rule(tmp_path, "typed.yaml", content)
+    assert load_detection_rules(tmp_path) == (DetectionRule.model_validate_json(content),)

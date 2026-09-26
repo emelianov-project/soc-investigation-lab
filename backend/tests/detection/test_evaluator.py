@@ -14,6 +14,7 @@ from app.detection import (
     InvalidDetectionFieldError,
     evaluate_condition,
     resolve_event_field,
+    validate_detection_rule_semantics,
 )
 from app.models import (
     AllCondition,
@@ -22,6 +23,7 @@ from app.models import (
     ConditionOutcome,
     ConditionTrace,
     DetectionOperator,
+    DetectionRule,
     LeafCondition,
     NormalizedEvent,
     NotCondition,
@@ -628,3 +630,70 @@ def test_controlled_error_does_not_include_retained_text_or_raw_exception() -> N
         evaluate_condition(normalized, leaf("source_data.ExampleField", "greater_than", 1))
     assert "synthetic-private-marker" not in str(caught.value)
     assert "Traceback" not in str(caught.value)
+
+
+@pytest.mark.parametrize("category", list(CONTEXTS))
+def test_shared_field_semantics_cover_exactly_the_current_context_contract(category: str) -> None:
+    normalized = event(category)
+    assert set(type(normalized.context).model_fields) == set(CONTEXTS[category])
+    for name in CONTEXTS[category]:
+        field = f"context.{name}"
+        resolved = resolve_event_field(normalized, field)
+        value = resolved.value
+        if resolved.field_type in {FieldType.TIMESTAMP, FieldType.IP}:
+            value = str(value)
+        selected = DetectionRule.model_validate(
+            {
+                "id": "shared-semantic-example",
+                "version": 1,
+                "title": "Synthetic example",
+                "description": "Shared semantic checks.",
+                "categories": [category],
+                "condition": leaf(field, value=value),
+            }
+        )
+        before = selected.model_dump()
+        validate_detection_rule_semantics(selected)
+        assert selected.model_dump() == before
+        assert evaluate_condition(normalized, selected.condition).outcome is ConditionOutcome.TRUE
+
+
+@pytest.mark.parametrize(
+    ("field", "op", "value", "error_type"),
+    [
+        ("context.nonexistent_field", "equals", "example", InvalidDetectionFieldError),
+        ("event_id", "contains", "46", IncompatibleDetectionConditionError),
+        ("timestamp", "equals", "2026-09-26T12:00:00", IncompatibleDetectionConditionError),
+        ("context.source_ip", "equals", "invalid-ip", IncompatibleDetectionConditionError),
+        ("context.source_ip", "ip_in_cidr", "invalid-cidr", IncompatibleDetectionConditionError),
+    ],
+)
+def test_direct_rules_retain_the_runtime_semantic_error_boundary(
+    field: str,
+    op: str,
+    value: object,
+    error_type: type[InvalidDetectionFieldError | IncompatibleDetectionConditionError],
+) -> None:
+    selected = DetectionRule.model_validate(
+        {
+            "id": "direct-invalid-example",
+            "version": 1,
+            "title": "Synthetic invalid example",
+            "description": "Bypass the YAML loader.",
+            "categories": ["authentication"],
+            "condition": leaf(field, op, value),
+        }
+    )
+    for run in (
+        lambda: validate_detection_rule_semantics(selected),
+        lambda: evaluate_condition(event("authentication"), selected.condition),
+    ):
+        with pytest.raises(error_type) as caught:
+            run()
+        assert isinstance(
+            caught.value, (InvalidDetectionFieldError, IncompatibleDetectionConditionError)
+        )
+        assert caught.value.field == field
+        assert "host.example.com" not in str(caught.value)
+        assert "invalid-ip" not in str(caught.value)
+        assert "invalid-cidr" not in str(caught.value)

@@ -3,34 +3,37 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
-from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_address, ip_network
+from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from typing import Any, Literal, cast
 
 from app.models import (
     AllCondition,
     AnyCondition,
-    AuthenticationContext,
     AuthenticationOutcome,
     ConditionNode,
     ConditionOutcome,
     ConditionTrace,
     DetectionOperator,
-    DnsContext,
     EventCategory,
     EventContext,
     EventSource,
-    FileContext,
     LeafCondition,
-    NetworkContext,
     NormalizedEvent,
     NotCondition,
-    ProcessContext,
 )
 
 from .errors import (
     DetectionEvaluationError,
     IncompatibleDetectionConditionError,
-    InvalidDetectionFieldError,
+)
+from .semantics import (
+    EXISTENCE_OPERATORS,
+    FieldType,
+    Operand,
+    Scalar,
+    context_type,
+    field_type,
+    validated_operands,
 )
 
 
@@ -42,20 +45,6 @@ class FieldPresence(StrEnum):
     ABSENT = "absent"
 
 
-class FieldType(StrEnum):
-    """Semantic types remain known even when optional values are absent."""
-
-    STRING = "string"
-    INTEGER = "integer"
-    TIMESTAMP = "timestamp"
-    IP = "ip"
-
-
-type Scalar = str | int | datetime | IPv4Address | IPv6Address
-type Operand = Scalar | IPv4Network | IPv6Network
-type FieldMap = dict[str, tuple[FieldType, Scalar | None]]
-
-
 @dataclass(frozen=True)
 class ResolvedField:
     """A whitelisted field with its declared type and explicit presence state."""
@@ -64,55 +53,6 @@ class ResolvedField:
     field_type: FieldType
     presence: FieldPresence
     value: Scalar | None
-
-
-def _context_fields(context: EventContext) -> FieldMap:
-    """Only explicit model attributes are accessed, never a user-supplied attribute."""
-    match context:
-        case AuthenticationContext():
-            return {
-                "outcome": (FieldType.STRING, context.outcome),
-                "user": (FieldType.STRING, context.user),
-                "domain": (FieldType.STRING, context.domain),
-                "logon_type": (FieldType.INTEGER, context.logon_type),
-                "source_ip": (FieldType.IP, context.source_ip),
-                "source_port": (FieldType.INTEGER, context.source_port),
-                "workstation": (FieldType.STRING, context.workstation),
-            }
-        case ProcessContext():
-            return {
-                "image": (FieldType.STRING, context.image),
-                "process_id": (FieldType.INTEGER, context.process_id),
-                "command_line": (FieldType.STRING, context.command_line),
-                "parent_process_id": (FieldType.INTEGER, context.parent_process_id),
-                "parent_image": (FieldType.STRING, context.parent_image),
-                "user": (FieldType.STRING, context.user),
-            }
-        case NetworkContext():
-            return {
-                "source_ip": (FieldType.IP, context.source_ip),
-                "source_port": (FieldType.INTEGER, context.source_port),
-                "destination_ip": (FieldType.IP, context.destination_ip),
-                "destination_port": (FieldType.INTEGER, context.destination_port),
-                "protocol": (FieldType.STRING, context.protocol),
-                "process_id": (FieldType.INTEGER, context.process_id),
-                "process_image": (FieldType.STRING, context.process_image),
-            }
-        case FileContext():
-            return {
-                "target_path": (FieldType.STRING, context.target_path),
-                "process_id": (FieldType.INTEGER, context.process_id),
-                "process_image": (FieldType.STRING, context.process_image),
-            }
-        case DnsContext():
-            return {
-                "query_name": (FieldType.STRING, context.query_name),
-                "query_status": (FieldType.STRING, context.query_status),
-                "query_results": (FieldType.STRING, context.query_results),
-                "process_id": (FieldType.INTEGER, context.process_id),
-                "process_image": (FieldType.STRING, context.process_image),
-            }
-    raise DetectionEvaluationError("invalid_context_type")
 
 
 def _resolved(path: str, field_type: FieldType, value: Scalar | None) -> ResolvedField:
@@ -142,99 +82,26 @@ def resolve_event_field(event: NormalizedEvent, field_path: str) -> ResolvedFiel
     must belong to this event's actual typed context; an invalid path is never
     treated as missing. Retained source_data is text, not a typed fallback.
     """
-    common: FieldMap = {
-        "source": (FieldType.STRING, event.source),
-        "provider": (FieldType.STRING, event.provider),
-        "event_id": (FieldType.INTEGER, event.event_id),
-        "channel": (FieldType.STRING, event.channel),
-        "timestamp": (FieldType.TIMESTAMP, event.timestamp),
-        "computer": (FieldType.STRING, event.computer),
-        "record_id": (FieldType.INTEGER, event.record_id),
-        "category": (FieldType.STRING, event.category),
-    }
-    if field_path in common:
-        return _resolved(field_path, *common[field_path])
-    parts = field_path.split(".")
-    if len(parts) == 2 and parts[0] == "context":
-        fields = _context_fields(event.context)
-        if parts[1] in fields:
-            return _resolved(field_path, *fields[parts[1]])
-    if len(parts) == 2 and parts[0] == "source_data":
-        name = parts[1]
-        if (
-            name
-            and name.isascii()
-            and name[0].isalpha()
-            and all(char.isalnum() or char == "_" for char in name)
-        ):
-            if name not in event.source_data:
-                return ResolvedField(field_path, FieldType.STRING, FieldPresence.MISSING, None)
-            return _resolved(field_path, FieldType.STRING, event.source_data[name])
-    raise InvalidDetectionFieldError(field_path)
-
-
-_EXISTENCE = {DetectionOperator.EXISTS, DetectionOperator.NOT_EXISTS}
-_STRING = {
-    DetectionOperator.CONTAINS,
-    DetectionOperator.CONTAINS_ANY,
-    DetectionOperator.STARTS_WITH,
-    DetectionOperator.ENDS_WITH,
-}
-_INTEGER = {
-    DetectionOperator.GREATER_THAN,
-    DetectionOperator.GREATER_OR_EQUAL,
-    DetectionOperator.LESS_THAN,
-    DetectionOperator.LESS_OR_EQUAL,
-}
-_LIST = {DetectionOperator.IN, DetectionOperator.NOT_IN, DetectionOperator.CONTAINS_ANY}
-
-
-def _literal(field: ResolvedField, op: DetectionOperator, value: object) -> Scalar:
-    """Parse only typed IP/time literals; never coerce strings or integers."""
-    if field.field_type is FieldType.INTEGER and type(value) is int:
-        return value
-    if type(value) is str:
-        if field.field_type is FieldType.STRING:
-            return value
-        try:
-            if field.field_type is FieldType.IP:
-                return ip_address(value)
-            if field.field_type is FieldType.TIMESTAMP:
-                timestamp = datetime.fromisoformat(value)
-                if timestamp.utcoffset() is not None:
-                    return timestamp.astimezone(UTC)
-        except (ValueError, OverflowError):
-            pass
-    raise IncompatibleDetectionConditionError(field.path, op.value, "invalid_literal_type_or_value")
-
-
-def _operands(field: ResolvedField, leaf: LeafCondition) -> tuple[Operand, ...]:
-    """Check compatibility even for absent values, so invalid conditions cannot hide."""
-    op = leaf.op
-    if not isinstance(op, DetectionOperator):
-        raise IncompatibleDetectionConditionError(field.path, "unknown", "unsupported_operator")
-    if op in _EXISTENCE:
-        if "value" in leaf.model_fields_set:
-            raise IncompatibleDetectionConditionError(field.path, op.value, "unexpected_operand")
-        return ()
-    if (
-        (op in _STRING and field.field_type is not FieldType.STRING)
-        or (op in _INTEGER and field.field_type is not FieldType.INTEGER)
-        or (op is DetectionOperator.IP_IN_CIDR and field.field_type is not FieldType.IP)
-    ):
-        raise IncompatibleDetectionConditionError(field.path, op.value, "incompatible_field_type")
-    if op is DetectionOperator.IP_IN_CIDR:
-        if type(leaf.value) is str:
-            try:
-                return (ip_network(leaf.value),)
-            except ValueError:
-                pass
-        raise IncompatibleDetectionConditionError(field.path, op.value, "invalid_cidr")
-    if op in _LIST:
-        if not isinstance(leaf.value, list) or not leaf.value:
-            raise IncompatibleDetectionConditionError(field.path, op.value, "invalid_operand_list")
-        return tuple(_literal(field, op, item) for item in leaf.value)
-    return (_literal(field, op, leaf.value),)
+    kind = field_type(field_path, event.category)
+    if field_path.startswith("source_data."):
+        name = field_path.split(".")[1]
+        if name not in event.source_data:
+            return ResolvedField(field_path, kind, FieldPresence.MISSING, None)
+        return _resolved(field_path, kind, event.source_data[name])
+    model: NormalizedEvent | EventContext = event
+    name = field_path
+    if field_path.startswith("context."):
+        if not isinstance(event.context, context_type(event.category)):
+            raise DetectionEvaluationError("invalid_context_type")
+        model = event.context
+        name = field_path.split(".")[1]
+    # The shared allowlist has already accepted this single declared data field.
+    # Python-mode extraction retains IP/datetime/enum types, with no attribute traversal.
+    try:
+        value = model.model_dump(mode="python", include={name}, warnings=False)[name]
+    except (TypeError, ValueError, KeyError):
+        raise DetectionEvaluationError("invalid_evaluation_input") from None
+    return _resolved(field_path, kind, value)
 
 
 def _compare(actual: Scalar, op: DetectionOperator, operands: tuple[Operand, ...]) -> bool:
@@ -279,16 +146,16 @@ def _outcome(value: bool) -> ConditionOutcome:
 
 def _evaluate_leaf(event: NormalizedEvent, leaf: LeafCondition, location: str) -> ConditionTrace:
     field = resolve_event_field(event, leaf.field)
-    operands = _operands(field, leaf)
+    operands = validated_operands(field.field_type, leaf)
     present = field.presence is FieldPresence.PRESENT
-    if leaf.op in _EXISTENCE:
+    if leaf.op in EXISTENCE_OPERATORS:
         outcome = _outcome(present if leaf.op is DetectionOperator.EXISTS else not present)
     elif not present:
         outcome = ConditionOutcome.UNKNOWN
     else:
         outcome = _outcome(_compare(cast(Scalar, field.value), leaf.op, operands))
     evidence: dict[str, Any] = {}
-    if leaf.op not in _EXISTENCE:
+    if leaf.op not in EXISTENCE_OPERATORS:
         # Copy membership lists so the trace is not an alias of a mutable rule operand.
         evidence["expected"] = list(leaf.value) if isinstance(leaf.value, list) else leaf.value
     if present:

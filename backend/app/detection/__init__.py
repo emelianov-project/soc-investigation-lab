@@ -12,12 +12,12 @@ from .errors import (
 )
 from .evaluator import (
     FieldPresence,
-    FieldType,
     ResolvedField,
     evaluate_condition,
     resolve_event_field,
 )
 from .loader import load_detection_rules
+from .semantics import FieldType, validate_detection_rule_semantics
 
 __all__ = (
     "DetectionEngineError",
@@ -34,4 +34,5 @@ __all__ = (
     "evaluate_event",
     "load_detection_rules",
     "resolve_event_field",
+    "validate_detection_rule_semantics",
 )
