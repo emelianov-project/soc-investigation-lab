@@ -1,4 +1,4 @@
-"""Controlled failures at the detection-rule loading boundary."""
+"""Controlled failures at the rule-loading and condition-evaluation boundaries."""
 
 
 class DetectionRuleLoadError(ValueError):
@@ -22,3 +22,25 @@ class DuplicateDetectionRuleIdError(DetectionRuleLoadError):
         self.first_path = first_path
         self.duplicate_path = duplicate_path
         super().__init__(f"duplicate rule id {rule_id!r}: {first_path!r} and {duplicate_path!r}")
+
+
+class DetectionEvaluationError(ValueError):
+    """A condition could not be evaluated; no partial trace is returned."""
+
+
+class InvalidDetectionFieldError(DetectionEvaluationError):
+    """A field is not in the explicit event/context contract."""
+
+    def __init__(self, field: str) -> None:
+        self.field = field
+        super().__init__(f"{field!r}: invalid_field")
+
+
+class IncompatibleDetectionConditionError(DetectionEvaluationError):
+    """A field, operator, or literal has incompatible semantics."""
+
+    def __init__(self, field: str, operator: str, reason: str) -> None:
+        self.field = field
+        self.operator = operator
+        self.reason = reason
+        super().__init__(f"{field!r} ({operator}): {reason}")
