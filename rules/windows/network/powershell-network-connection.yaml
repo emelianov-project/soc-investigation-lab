@@ -1,0 +1,17 @@
+id: powershell-network-connection
+version: 1
+title: PowerShell-associated network connection
+description: >-
+  Selects a network event whose process image has a case-sensitive
+  PowerShell-family suffix. This broad educational triage signal does not
+  infer connection direction, classify destinations, or establish maliciousness.
+categories:
+  - network
+condition:
+  any:
+    - field: context.process_image
+      op: ends_with
+      value: '\powershell.exe'
+    - field: context.process_image
+      op: ends_with
+      value: '\pwsh.exe'

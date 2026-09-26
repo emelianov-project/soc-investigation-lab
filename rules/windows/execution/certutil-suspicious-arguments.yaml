@@ -1,0 +1,20 @@
+id: certutil-suspicious-arguments
+version: 1
+title: Certutil transfer or decode argument
+description: >-
+  Selects certutil.exe process events containing the space-delimited
+  -urlcache or -decode argument. Matching is case-sensitive. These transparent
+  transfer/decode-style markers are demonstration triage signals; legitimate
+  administration can use them and a match does not establish maliciousness.
+categories:
+  - process
+condition:
+  all:
+    - field: context.image
+      op: ends_with
+      value: '\certutil.exe'
+    - field: context.command_line
+      op: contains_any
+      value:
+        - ' -urlcache '
+        - ' -decode '

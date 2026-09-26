@@ -1,0 +1,25 @@
+id: powershell-encoded-command
+version: 1
+title: PowerShell encoded-command argument
+description: >-
+  Selects a PowerShell-family process with an explicit encoded-command
+  argument marker. Image suffixes and the space-delimited -EncodedCommand,
+  -encodedcommand, and -enc markers are case-sensitive. This demonstration
+  triage signal neither decodes the argument nor proves maliciousness.
+categories:
+  - process
+condition:
+  all:
+    - any:
+        - field: context.image
+          op: ends_with
+          value: '\powershell.exe'
+        - field: context.image
+          op: ends_with
+          value: '\pwsh.exe'
+    - field: context.command_line
+      op: contains_any
+      value:
+        - ' -EncodedCommand '
+        - ' -encodedcommand '
+        - ' -enc '

@@ -1,0 +1,17 @@
+id: failed-remote-authentication
+version: 1
+title: Failed network or remote-interactive authentication
+description: >-
+  Selects one failed authentication event with network logon type 3 or
+  remote-interactive logon type 10. This is single-event triage, not
+  brute-force detection; it does not count failures or correlate time windows.
+categories:
+  - authentication
+condition:
+  all:
+    - field: context.outcome
+      op: equals
+      value: failure
+    - field: context.logon_type
+      op: in
+      value: [3, 10]

@@ -1,0 +1,13 @@
+id: startup-folder-file-activity
+version: 1
+title: Startup-folder file activity
+description: >-
+  Selects a file event targeting the literal case-sensitive Windows
+  Start Menu\Programs\Startup path fragment. This is persistence-relevant
+  triage behavior, not proof of persistence, execution, or maliciousness.
+categories:
+  - file
+condition:
+  field: context.target_path
+  op: contains
+  value: '\Start Menu\Programs\Startup\'
