@@ -1,0 +1,14 @@
+id: dns-suspicious-query-marker
+version: 1
+title: DNS demonstration query marker
+description: >-
+  Selects a DNS query containing the literal case-sensitive tunnel-test
+  marker. This illustrates a single-event textual signal with synthetic
+  data, not general DNS-tunneling detection or a maliciousness verdict.
+  It does not measure frequency, entropy, label length, or volume.
+categories:
+  - dns
+condition:
+  field: context.query_name
+  op: contains
+  value: tunnel-test
