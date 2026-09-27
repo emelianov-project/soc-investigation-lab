@@ -7,6 +7,27 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-27
+
+### Added
+
+- Typed `DetectionRule`, recursive condition, `ConditionTrace`, and `DetectionMatch` contracts.
+- Deterministic safe YAML rule loading with path containment and duplicate-ID rejection.
+- Explicit normalized-event field resolution and 15 typed comparison operators.
+- Three-valued condition evaluation with complete, ordered explanation traces.
+- Stateless single-event Detection Engine with category/source targeting and rule-ID-ordered matches.
+- Six initial declarative Windows/Sysmon rules with synthetic positive, negative, and optional-data tests.
+- XML-to-`DetectionMatch` integration, deterministic ordering, and failure-path coverage.
+- Detection Engine architecture and rule-authoring documentation.
+
+### Changed
+
+- Shared field/type semantics validate rules at load time as well as during evaluation.
+
+### Fixed
+
+- Semantically invalid YAML rules are rejected before evaluation, including incompatible category/field/operator combinations and malformed typed literals; runtime checks remain defense in depth.
+
 ## [0.2.0] - 2026-09-25
 
 ### Added
