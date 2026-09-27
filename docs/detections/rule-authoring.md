@@ -2,8 +2,8 @@
 
 ## Scope and prerequisites
 
-The v0.3.0 Detection Engine is implemented on `main`; release preparation is
-still pending. v0.1.0 and v0.2.0 are released. This guide describes the existing
+v0.3.0 — Detection Engine is released, alongside v0.1.0 and v0.2.0.
+This guide describes the existing
 data-only rule contract, not an Alert or investigation system. Read the
 [architecture](../architecture/detection-engine.md) and
 [merged contract](../detection-engine-scope.md) for design and boundaries.

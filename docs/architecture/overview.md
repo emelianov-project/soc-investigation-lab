@@ -2,7 +2,7 @@
 
 ## Architecture Status
 
-This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. The v0.3.0 Detection Engine implementation is complete on `main`; release is pending. Supported Windows Event XML is normalized into `NormalizedEvent`, then evaluated against validated declarative rules to produce `DetectionMatch`. Alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned. Repository directory names alone do not establish implementation. See [Event Processing Architecture](event-processing.md) for the v0.2.0 layer and [Detection Engine Architecture](detection-engine.md) for the implemented v0.3.0 boundary.
+This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. v0.3.0 — Detection Engine is released. Supported Windows Event XML is normalized into `NormalizedEvent`, then evaluated against validated declarative rules to produce `DetectionMatch`. Alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned. Repository directory names alone do not establish implementation. See [Event Processing Architecture](event-processing.md) for the v0.2.0 layer and [Detection Engine Architecture](detection-engine.md) for the implemented v0.3.0 boundary.
 
 The architecture defines conceptual responsibilities and data flow. It does not prescribe low-level classes, database tables, endpoints, or deployment topology.
 
@@ -149,7 +149,7 @@ The intended mapping between architecture responsibilities and repository areas 
 | `rules/windows/` | Reviewable Windows and Sysmon detection rules | Six initial rules implemented and tested |
 | `backend/app/parsers/` | XML ingestion, explicit registry, pipeline, and source-specific normalization | Implemented v0.2.0 boundary |
 | `backend/app/schemas/` | Future input and transport-boundary contracts; implemented event models live under `backend/app/models/` | Foundation placeholder |
-| `backend/app/detection/` | Safe rule loading, shared semantic validation, evaluator, and single-event engine | Implemented; v0.3.0 release pending |
+| `backend/app/detection/` | Safe rule loading, shared semantic validation, evaluator, and single-event engine | Released in v0.3.0 |
 | `backend/app/investigation/` | Investigation behavior, evidence, timelines, verdicts, and escalation | Foundation placeholder |
 | `backend/app/models/` | Raw/normalized event, rule, condition, trace, and match contracts | Implemented through DetectionMatch; downstream models planned |
 | `backend/app/services/` | Application-level orchestration across domain responsibilities | Foundation placeholder |
@@ -190,17 +190,17 @@ Controlled telemetry must not include production credentials, secrets, personal 
 
 ## Planned Evolution
 
-The roadmap distinguishes released stages, implemented work awaiting release, and planned future stages:
+The roadmap distinguishes released stages and planned future stages:
 
 - **v0.2.0 — Event processing and normalization:** released and completed, with supported event parsing, validation, and normalized-event contracts.
-- **v0.3.0 — Detection Engine:** implementation complete on main; release pending. Includes rule contracts, safe loading and semantic validation, deterministic single-event evaluation, complete traces, six Windows rules, and XML-to-match integration.
+- **v0.3.0 — Detection Engine:** released. Includes rule contracts, safe loading and semantic validation, deterministic single-event evaluation, complete traces, six Windows rules, and XML-to-match integration.
 - **v0.4.x — Alert management:** introduce alert generation, alert models, severity handling, lifecycle state, and the analyst alert queue backend.
 - **v0.5.x — Investigation workflow:** introduce triage, related-event analysis, evidence, timelines, analyst notes, verdicts, and escalation workflow.
 - **v0.6.x — IOC and MITRE ATT&CK enrichment:** introduce IOC extraction and enrichment, ATT&CK mappings, and supporting investigation context.
 - **v0.7.x — Investigation cases:** introduce documented investigation scenarios with evidence, timelines, mappings, verdicts, and escalation reports.
 - **v0.8.x — Analyst web interface:** introduce the analyst-facing experience for alerts, investigations, timelines, IOC context, verdicts, and reports.
 
-The v0.2.0 event-processing boundary is released. v0.3.0 is implemented but not released; its boundary is `DetectionMatch`. Alert management and every later stage remain planned and unimplemented. Testing, validation, and documentation should evolve alongside each capability.
+The v0.2.0 event-processing boundary is released. v0.3.0 is released; its boundary is `DetectionMatch`. Alert management and every later stage remain planned and unimplemented. Testing, validation, and documentation should evolve alongside each capability.
 
 Module boundaries may be refined as concrete requirements emerge. A distributed design should be considered only if measured constraints justify it; future refactoring should not be driven by speculative scale. Until then, the modular monolith remains the planned deployment and development model.
 

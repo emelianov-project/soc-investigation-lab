@@ -14,7 +14,7 @@ The primary audience is SOC Level 1 analysts, junior blue-team analysts, and lea
 
 ## Current Status
 
-The repository has released **v0.1.0 — Project Foundation** and **v0.2.0 — Event Processing**. **v0.3.0 — Detection Engine** is implementation-complete on `main`; its release artifacts are prepared and publication is pending. Windows Event XML ingestion and normalization for seven supported Windows Security and Sysmon event identities feed an operational, deterministic Detection Engine. Safe rule loading includes structural and semantic validation; six initial rules and XML-to-`DetectionMatch` integration are implemented and tested. Alert handling and investigation remain planned.
+The repository has released **v0.1.0 — Project Foundation**, **v0.2.0 — Event Processing**, and **v0.3.0 — Detection Engine**. Windows Event XML ingestion and normalization for seven supported Windows Security and Sysmon event identities feed an operational, deterministic Detection Engine. Safe rule loading includes structural and semantic validation; six initial rules and XML-to-`DetectionMatch` integration are implemented and tested. Alert handling and investigation remain planned.
 
 | Area | Status |
 | --- | --- |
@@ -26,7 +26,7 @@ The repository has released **v0.1.0 — Project Foundation** and **v0.2.0 — E
 | Scope, architecture, contribution, security, and local-development documentation | Implemented |
 | Windows Event XML ingestion and Security/Sysmon normalization | Implemented for seven supported events |
 | Typed normalized contexts, parser registry, and normalization pipeline | Implemented |
-| Detection Engine, semantic rule validation, and complete condition traces | Implemented; v0.3.0 release pending |
+| Detection Engine, semantic rule validation, and complete condition traces | Released in v0.3.0 |
 | Initial declarative detection-rule library | Six rules implemented and tested |
 | Alert management and analyst triage | Planned |
 | Investigation, enrichment, verdict, and escalation workflows | Planned |
@@ -53,7 +53,7 @@ The planned backend is a modular monolith: one Python application and deployment
 
 This approach keeps debugging and local execution straightforward, makes security decisions easier to inspect and test, and avoids infrastructure that is unnecessary for a portfolio lab. Module boundaries remain explicit so they can evolve when concrete requirements justify a change, without introducing speculative microservices.
 
-The implemented path extends the released v0.2.0 event-processing prefix with the upcoming v0.3.0 detection layer:
+The implemented path extends the released v0.2.0 event-processing prefix with the released v0.3.0 detection layer:
 
 `Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer → NormalizedEvent → Detection Engine → DetectionMatch`
 
@@ -101,7 +101,7 @@ Parsing, normalization, and detection through `DetectionMatch` are operational. 
 
 This event-processing implementation was released in v0.2.0.
 
-### Detection Engine implemented for v0.3.0 (release pending)
+### Detection Engine released in v0.3.0
 
 - Typed `DetectionRule`, `ConditionTrace`, and `DetectionMatch` contracts.
 - Deterministic safe YAML loading, semantic field/type validation, and duplicate-ID rejection.
@@ -159,7 +159,7 @@ See the [rule inventory and limitations](docs/architecture/detection-engine.md#i
 | --- | --- | --- |
 | `backend/` | Python event processing, detection, and backend tests | Event-processing and detection layers implemented; downstream modules remain placeholders |
 | `backend/app/models/` | Event, rule, condition, trace, and match contracts | Implemented |
-| `backend/app/detection/` | Safe loading, shared semantics, evaluator, and single-event engine | Implemented; release pending |
+| `backend/app/detection/` | Safe loading, shared semantics, evaluator, and single-event engine | Released in v0.3.0 |
 | `frontend/` | Planned analyst-facing web interface | Foundation placeholder |
 | `rules/windows/` | Transparent declarative Windows rule library | Six tested rules |
 | `datasets/` | Future synthetic, controlled-lab, or public-safe telemetry | Foundation placeholders; no datasets included |
@@ -222,7 +222,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | --- | --- | --- |
 | v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
 | v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Released |
-| v0.3.0 — Detection Engine | Detection-rule format, safe/semantic loading, evaluation, and six initial rules | Release prepared; publication pending |
+| v0.3.0 — Detection Engine | Detection-rule format, safe/semantic loading, evaluation, and six initial rules | Released |
 | v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned |
 | v0.5.0 — Investigation Workflow | Evidence, timelines, analyst notes, verdicts, and escalation | Planned |
 | v0.6.0 — IOC & MITRE Enrichment | IOC handling and MITRE ATT&CK investigation context | Planned |
@@ -238,10 +238,10 @@ Status distinguishes implemented work from published releases and future plans. 
 - [Project Scope](docs/project-scope.md) — purpose, users, product boundaries, and non-goals.
 - [System Architecture](docs/architecture/overview.md) — implemented and planned components, responsibilities, and data flow.
 - [Event Processing Architecture](docs/architecture/event-processing.md) — implemented v0.2.0 pipeline and examples.
-- [Detection Engine Architecture](docs/architecture/detection-engine.md) — implemented loading, semantics, evaluation, and `DetectionMatch` boundary; v0.3.0 release pending.
+- [Detection Engine Architecture](docs/architecture/detection-engine.md) — released v0.3.0 loading, semantics, evaluation, and `DetectionMatch` boundary.
 - [Rule Authoring](docs/detections/rule-authoring.md) — supported fields/operators, safe examples, validation, and testing.
 - [v0.2.0 Release Notes](docs/releases/v0.2.0.md) — published event-processing release scope, validation, and limitations.
-- [v0.3.0 Release Notes](docs/releases/v0.3.0.md) — prepared Detection Engine release scope, validation, and limitations; publication pending.
+- [v0.3.0 Release Notes](docs/releases/v0.3.0.md) — published Detection Engine release scope, validation, and limitations.
 - [Contributing Guide](CONTRIBUTING.md) — Issue, branch, validation, Pull Request, and merge workflow.
 - [Security and Safe Data Handling Policy](SECURITY.md) — public-repository data and reporting requirements.
 - [Development Tooling](docs/development-tooling.md) — Ruff, mypy, and pre-commit commands.

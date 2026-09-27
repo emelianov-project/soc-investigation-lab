@@ -3,9 +3,8 @@
 ## Status and boundary
 
 v0.1.0 — Project Foundation and v0.2.0 — Event Processing are released.
-The v0.3.0 Detection Engine implementation is complete on `main`; its release
-is pending. This document describes that implementation, not a published v0.3.0
-release. The [merged scope contract](../detection-engine-scope.md) defines its
+v0.3.0 — Detection Engine is released. This document describes that released
+implementation. The [merged scope contract](../detection-engine-scope.md) defines its
 boundary; the [authoring guide](../detections/rule-authoring.md) explains how to
 write rules for it.
 
