@@ -8,25 +8,26 @@ The project favors transparent security logic, deterministic lab data, and expla
 
 A SOC analyst must understand why a detection fired, establish the relevant event context, gather evidence, identify indicators, reconstruct activity, decide whether the alert is a False Positive or True Positive, assess risk, and provide a useful escalation when required.
 
-SOC Investigation Lab is designed to model that lifecycle in a small and understandable educational system. Its implemented event-processing layer uses controlled Windows Event Log and Sysmon examples; detection and investigation decisions remain later milestones.
+SOC Investigation Lab is designed to model that lifecycle in a small and understandable educational system. Its implemented event-processing and detection layers use controlled Windows Event Log and Sysmon examples to produce explainable detection matches. Alert handling and investigation decisions remain later milestones.
 
-The primary audience is SOC Level 1 analysts, junior blue-team analysts, and learners developing practical investigation skills. As later milestones add escalation outputs and executable detection rules, the project is intended to support higher-tier analysts reviewing escalation quality and detection-engineering learners examining rule behavior.
+The primary audience is SOC Level 1 analysts, junior blue-team analysts, and learners developing practical investigation skills. Detection-engineering learners can inspect the initial rule library and its explanations. Later milestones will add escalation outputs for higher-tier analysts reviewing escalation quality.
 
 ## Current Status
 
-The repository has released **v0.1.0 — Project Foundation** and **v0.2.0 — Event Processing**. Windows Event XML ingestion and normalization for seven supported Windows Security and Sysmon event identities are implemented. Parsing and normalization through `NormalizedEvent` are operational; downstream detection, alerts, and investigation remain planned. **v0.3.0 — Detection Engine** is the next planned milestone.
+The repository has released **v0.1.0 — Project Foundation** and **v0.2.0 — Event Processing**. **v0.3.0 — Detection Engine** is implementation-complete on `main`; its release is pending. Windows Event XML ingestion and normalization for seven supported Windows Security and Sysmon event identities feed an operational, deterministic Detection Engine. Safe rule loading includes structural and semantic validation; six initial rules and XML-to-`DetectionMatch` integration are implemented and tested. Alert handling and investigation remain planned.
 
 | Area | Status |
 | --- | --- |
 | Repository and module scaffold | Foundation implemented |
 | Python 3.12 and uv configuration | Implemented |
 | Ruff, mypy, and pre-commit tooling | Implemented |
-| pytest foundation, parser tests, and event-processing integration tests | Implemented |
+| Parser, detection, rule-library, and XML-to-match integration/failure-path tests | Implemented |
 | GitHub Actions backend CI | Implemented |
 | Scope, architecture, contribution, security, and local-development documentation | Implemented |
 | Windows Event XML ingestion and Security/Sysmon normalization | Implemented for seven supported events |
 | Typed normalized contexts, parser registry, and normalization pipeline | Implemented |
-| Detection engine and executable detection rules | Planned |
+| Detection Engine, semantic rule validation, and complete condition traces | Implemented; v0.3.0 release pending |
+| Initial declarative detection-rule library | Six rules implemented and tested |
 | Alert management and analyst triage | Planned |
 | Investigation, enrichment, verdict, and escalation workflows | Planned |
 | Backend API, persistence, and analyst web interface | Planned |
@@ -52,18 +53,14 @@ The planned backend is a modular monolith: one Python application and deployment
 
 This approach keeps debugging and local execution straightforward, makes security decisions easier to inspect and test, and avoids infrastructure that is unnecessary for a portfolio lab. Module boundaries remain explicit so they can evolve when concrete requirements justify a change, without introducing speculative microservices.
 
-The implemented v0.2.0 prefix is:
+The implemented path extends the released v0.2.0 event-processing prefix with the upcoming v0.3.0 detection layer:
 
-`Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer → NormalizedEvent`
+`Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer → NormalizedEvent → Detection Engine → DetectionMatch`
 
-The wider target processing flow continues from the normalized event into future stages:
+The wider target processing flow continues from `DetectionMatch` into planned stages:
 
 ```text
- Normalized Event
-        ↓
- Detection Engine
-        ↓
- Detection Match
+ DetectionMatch (implemented boundary)
         ↓
        Alert
         ↓
@@ -80,7 +77,7 @@ Severity / Priority
     Escalation
 ```
 
-Only parsing and normalization through `NormalizedEvent` are operational. Detection and all downstream stages in the wider flow remain planned. See [Event Processing Architecture](docs/architecture/event-processing.md) for the implemented boundary and [System Architecture](docs/architecture/overview.md) for the wider plan.
+Parsing, normalization, and detection through `DetectionMatch` are operational. An Alert is not a detection match: Alert generation and all later stages remain planned. See [Event Processing Architecture](docs/architecture/event-processing.md) for the v0.2.0 layer, [Detection Engine Architecture](docs/architecture/detection-engine.md) for the current output boundary, and [System Architecture](docs/architecture/overview.md) for the wider plan.
 
 ## Features
 
@@ -104,9 +101,19 @@ Only parsing and normalization through `NormalizedEvent` are operational. Detect
 
 This event-processing implementation was released in v0.2.0.
 
+### Detection Engine implemented for v0.3.0 (release pending)
+
+- Typed `DetectionRule`, `ConditionTrace`, and `DetectionMatch` contracts.
+- Deterministic safe YAML loading, semantic field/type validation, and duplicate-ID rejection.
+- Explicit field resolution, 15 typed operators, and complete three-valued condition traces.
+- Stateless single-event evaluation with category/source targeting and rule-ID-ordered matches.
+- Six initial declarative Windows rules with synthetic positive/negative tests.
+- Offline XML-to-match integration, optional-data, determinism, and failure-path coverage.
+
+This implementation ends at `DetectionMatch`; it does not decide maliciousness or create Alerts.
+
 ### Planned downstream SOC capabilities
 
-- Transparent, rule-based detection evaluation with traceable detection matches.
 - Alert creation, lifecycle management, and analyst triage.
 - Investigation records containing evidence, related activity, timelines, and analyst notes.
 - IOC extraction and contextual enrichment.
@@ -131,33 +138,36 @@ The target analyst workflow is:
 8. Assess severity and operational priority.
 9. Prepare escalation context and recommended actions when necessary.
 
-Only step 2 is implemented for the seven supported XML event identities. The complete analyst workflow remains planned.
+Steps 2 and 3 are implemented for the seven supported XML event identities and the initial rule library. Step 1 uses controlled fixture/file input, not live collection. Alert creation and steps 4–9 remain planned.
 
 ## Detection Coverage
 
-The repository reserves the following initial Windows detection categories under `rules/windows/`. The directories are foundation placeholders; no executable detection rules or coverage metrics exist yet.
+The initial library contains exactly six tested declarative rules under `rules/windows/`. These are educational single-event triage signals, not enterprise coverage metrics or proof of maliciousness.
 
-| Category | Intended focus | Status |
+| Directory | Current rules | Count |
 | --- | --- | --- |
-| `account/` | Account-related Windows activity | Planned |
-| `execution/` | Suspicious process and command execution | Planned |
-| `network/` | Security-relevant network activity | Planned |
-| `persistence/` | Persistence-related Windows behavior | Planned |
+| `account/` | `failed-remote-authentication` | 1 |
+| `execution/` | `certutil-suspicious-arguments`, `powershell-encoded-command` | 2 |
+| `network/` | `dns-suspicious-query-marker`, `powershell-network-connection` | 2 |
+| `persistence/` | `startup-folder-file-activity` | 1 |
 
-Rule names, rule counts, and measurable coverage will be documented only when corresponding detections are implemented and tested.
+See the [rule inventory and limitations](docs/architecture/detection-engine.md#initial-windows-rule-library) and [rule-authoring guide](docs/detections/rule-authoring.md). Exact case-sensitive markers can miss variants, and legitimate activity can match.
 
 ## Repository Structure
 
 | Path | Responsibility | Current state |
 | --- | --- | --- |
-| `backend/` | Python event models, ingestion, source normalizers, registry, pipeline, and backend tests | Event-processing layer implemented; later application modules remain placeholders |
+| `backend/` | Python event processing, detection, and backend tests | Event-processing and detection layers implemented; downstream modules remain placeholders |
+| `backend/app/models/` | Event, rule, condition, trace, and match contracts | Implemented |
+| `backend/app/detection/` | Safe loading, shared semantics, evaluator, and single-event engine | Implemented; release pending |
 | `frontend/` | Planned analyst-facing web interface | Foundation placeholder |
-| `rules/` | Planned transparent detection-rule library, initially for Windows | Foundation placeholders |
+| `rules/windows/` | Transparent declarative Windows rule library | Six tested rules |
 | `datasets/` | Future synthetic, controlled-lab, or public-safe telemetry | Foundation placeholders; no datasets included |
 | `cases/` | Planned investigation scenarios and expected analyst outcomes | Foundation placeholder |
-| `docs/` | Project scope, architecture, tooling, testing, security-related, and local-development guidance | Partially established |
+| `docs/` | Scope, architecture, rule authoring, tooling, testing, security, and local-development guidance | Event-processing and Detection Engine boundaries documented |
 | `scripts/` | Future narrowly scoped project and development utilities | Foundation placeholder |
-| `tests/` | Synthetic Windows/Sysmon fixtures and cross-component integration tests | Event-processing fixtures and tests implemented |
+| `tests/fixtures/` | Synthetic Windows/Sysmon XML input | Seven supported event fixtures |
+| `tests/integration/` | Cross-component normalization and detection validation | XML-to-event and XML-to-match tests implemented |
 | `.github/` | Pull-request CI and future repository collaboration configuration | Backend CI implemented |
 
 Placeholder directories describe intended ownership; they do not demonstrate completed functionality.
@@ -184,7 +194,7 @@ Optionally install the configured local hooks:
 uv run pre-commit install
 ```
 
-There is no runnable end-to-end SOC application yet. The v0.2.0 XML normalization entry point is available as a Python function; no application-specific environment variables are required. Local configuration conventions are documented in [Local Development](docs/local-development.md).
+There is no runnable end-to-end analyst SOC application yet. XML normalization, rule loading, and single-event detection are available as Python functions, not an application CLI or API. See the [Python integration example](docs/architecture/detection-engine.md#python-integration-example). No application-specific environment variables are required; local conventions are documented in [Local Development](docs/local-development.md).
 
 ## Development
 
@@ -212,7 +222,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | --- | --- | --- |
 | v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
 | v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Released |
-| v0.3.0 — Detection Engine | Detection-rule format, loading, evaluation, and initial rules | Planned |
+| v0.3.0 — Detection Engine | Detection-rule format, safe/semantic loading, evaluation, and six initial rules | Implemented; release pending |
 | v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned |
 | v0.5.0 — Investigation Workflow | Evidence, timelines, analyst notes, verdicts, and escalation | Planned |
 | v0.6.0 — IOC & MITRE Enrichment | IOC handling and MITRE ATT&CK investigation context | Planned |
@@ -228,6 +238,8 @@ Status distinguishes implemented work from published releases and future plans. 
 - [Project Scope](docs/project-scope.md) — purpose, users, product boundaries, and non-goals.
 - [System Architecture](docs/architecture/overview.md) — implemented and planned components, responsibilities, and data flow.
 - [Event Processing Architecture](docs/architecture/event-processing.md) — implemented v0.2.0 pipeline and examples.
+- [Detection Engine Architecture](docs/architecture/detection-engine.md) — implemented loading, semantics, evaluation, and `DetectionMatch` boundary; v0.3.0 release pending.
+- [Rule Authoring](docs/detections/rule-authoring.md) — supported fields/operators, safe examples, validation, and testing.
 - [v0.2.0 Release Notes](docs/releases/v0.2.0.md) — published event-processing release scope, validation, and limitations.
 - [Contributing Guide](CONTRIBUTING.md) — Issue, branch, validation, Pull Request, and merge workflow.
 - [Security and Safe Data Handling Policy](SECURITY.md) — public-repository data and reporting requirements.
