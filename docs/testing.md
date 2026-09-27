@@ -13,7 +13,7 @@ pipeline tests, plus quality checks for the synthetic Windows Event XML fixtures
 
 ### Detection Engine coverage
 
-The implementation for v0.3.0 is complete on main; release is pending. Tests
+v0.3.0 — Detection Engine is released. Tests
 exercise the boundary through `DetectionMatch`, not Alert or investigation
 behavior:
 
