@@ -2,13 +2,13 @@
 
 ## Architecture Status
 
-This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. Parsing and normalization of supported Windows Event XML into a validated `NormalizedEvent` are implemented. Detection Engine, detection-rule evaluation and matches, alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned; v0.3.0 — Detection Engine is the next planned milestone. Repository directory names alone do not establish that a capability is implemented. For the current parsing and normalization design, see [Event Processing Architecture](event-processing.md).
+This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. The v0.3.0 Detection Engine implementation is complete on `main`; release is pending. Supported Windows Event XML is normalized into `NormalizedEvent`, then evaluated against validated declarative rules to produce `DetectionMatch`. Alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned. Repository directory names alone do not establish implementation. See [Event Processing Architecture](event-processing.md) for the v0.2.0 layer and [Detection Engine Architecture](detection-engine.md) for the implemented v0.3.0 boundary.
 
 The architecture defines conceptual responsibilities and data flow. It does not prescribe low-level classes, database tables, endpoints, or deployment topology.
 
 ## Architectural Style
 
-The Python backend follows a modular-monolith design: one backend application with clear internal module boundaries and explicit domain responsibilities. Parsing and normalization are implemented. Detection, alert handling, investigation, enrichment, persistence, and API behavior are planned within this design rather than as independently deployed services.
+The Python backend follows a modular-monolith design: one backend application with clear internal module boundaries and explicit domain responsibilities. Parsing, normalization, safe rule loading, semantic validation, and detection evaluation are implemented. Alert handling, investigation, enrichment, persistence, and API behavior are planned within this design rather than as independently deployed services.
 
 This style fits the project's deliberately small scope because it supports easier debugging, deterministic local execution, lower operational complexity, straightforward testing, and direct inspection of security logic. Those qualities are especially valuable for an educational and portfolio project.
 
@@ -25,11 +25,11 @@ Backend application
 └── API
 ```
 
-Internal boundaries should remain explicit so responsibilities can be tested independently and refactored later if evidence justifies a different design. Only parsing and normalization in this component outline currently have implemented application behavior; the later components remain planned.
+Internal boundaries should remain explicit so responsibilities can be tested independently and refactored later if evidence justifies a different design. Parsing, normalization, and Detection Engine behavior are implemented; Alert handling and all later components remain planned.
 
 ## High-Level Data Flow
 
-The implemented pipeline ends at `NormalizedEvent`: Windows Event XML → `RawWindowsEvent` → parser registry → source normalizer → `NormalizedEvent`. The broader high-level flow below includes that implemented boundary; stages after `NormalizedEvent` remain planned, not implemented:
+The implemented pipeline ends at `DetectionMatch`: Windows Event XML → `RawWindowsEvent` → parser registry → source normalizer → `NormalizedEvent` → Detection Engine → `DetectionMatch`. The broader flow below continues into planned stages from Alert onward; the dashed edge marks that boundary:
 
 Raw Security Event
 → Source Parser
@@ -51,7 +51,7 @@ flowchart TD
     C --> D[Detection Engine]
     R[Detection Rules] --> D
     D --> E[Detection Match]
-    E --> F[Alert]
+    E -. planned .-> F[Alert]
     F --> G[Initial Triage]
     G --> H[Investigation]
     H --> I[Evidence]
@@ -66,18 +66,18 @@ flowchart TD
     N --> O[Escalation]
 ```
 
-The implemented XML ingestion reads one supported raw event representation without making detection decisions. The registry and source normalizers produce a validated, source-independent `NormalizedEvent`. The planned detection engine would evaluate normalized events against transparent rules and emit a detection match when rule conditions are satisfied.
+The implemented XML ingestion reads one supported raw event representation without making detection decisions. The registry and source normalizers produce a validated, source-independent `NormalizedEvent`. The implemented Detection Engine evaluates one event against validated rules and emits a match only for a TRUE root condition, preserving its complete ordered `ConditionTrace`. It does not correlate multiple events.
 
 In the planned downstream stages, alert management would convert a detection match into analyst-facing work with the event and rule context needed for triage. An investigation would then associate related events, evidence, IOCs, timeline entries, and supported MITRE ATT&CK context. The analyst would use that context to record a False Positive or True Positive verdict, assess severity and priority, and prepare escalation information when required.
 
 ## Core Domain Objects
 
-The architecture is organized around the following domain concepts. `RawWindowsEvent` and `NormalizedEvent` are implemented typed models; the downstream concepts remain planned and do not imply implementation classes or storage schemas.
+The architecture is organized around the following domain concepts. `RawWindowsEvent`, `NormalizedEvent`, `DetectionRule`, `ConditionTrace`, and `DetectionMatch` are implemented typed contracts. Alert and the subsequent workflow concepts remain planned and do not imply implementation classes or storage schemas.
 
 - **Raw Security Event:** source-shaped Windows Event Log or Sysmon telemetry before normalization.
 - **Normalized Security Event:** a consistent event representation used by detection and investigation components.
-- **Detection Rule:** reviewable detection criteria and descriptive metadata.
-- **Detection Match:** evidence that a specific rule matched a normalized event or related event context.
+- **Detection Rule (implemented):** bounded declarative criteria and descriptive metadata, validated structurally and semantically during loading.
+- **Detection Match (implemented):** evidence that one specific rule matched one normalized event, with rule identity/version and complete condition trace; not an Alert or verdict.
 - **Alert:** analyst-facing work created from a detection match, including triage context and lifecycle state.
 - **Investigation:** the record that organizes analysis of an alert and its related activity.
 - **Evidence:** event-derived facts or analyst-selected observations supporting a decision.
@@ -103,11 +103,13 @@ Schemas define stable contracts for information passed between components. Norma
 
 ### Detection Rules
 
-Detection rules express transparent, reviewable conditions and metadata for suspicious behavior. Rules should remain separate from the evaluation runtime so they can be inspected, versioned, and tested independently. Initial rule content is expected under the Windows rule library.
+Detection rules express transparent, reviewable conditions and metadata for observable behavior. Six initial YAML rules are implemented under `rules/windows/`, separate from the evaluation runtime so they can be inspected, versioned, and tested independently. They are educational triage signals, not maliciousness verdicts. See [Rule Authoring](../detections/rule-authoring.md).
 
 ### Detection Engine
 
-The detection engine loads valid rules, evaluates normalized events deterministically, and produces detection matches with enough rule and event context to explain why a condition matched. It does not own alert workflow, analyst notes, or verdict decisions.
+The loader safely reads the controlled rule library and validates structure, shared field/type semantics, and duplicate identities before returning a complete rule tuple. The engine filters by category/source and evaluates one normalized event in rule-ID order with three-valued conditions and complete traces. It produces TRUE-only detection matches, not partial results after errors. The shared semantic layer also supports defensive runtime validation. It does not own alert workflow, analyst notes, or verdict decisions. Detailed responsibilities and failure semantics are in [Detection Engine Architecture](detection-engine.md).
+
+The remaining component responsibilities below are planned, not implemented.
 
 ### Alert Management
 
@@ -144,21 +146,21 @@ The intended mapping between architecture responsibilities and repository areas 
 | Repository path | Architectural responsibility | Status |
 | --- | --- | --- |
 | `datasets/` | Controlled telemetry and reusable dataset inputs | Foundation placeholder |
-| `rules/windows/` | Reviewable Windows and Sysmon detection rules | Foundation placeholder |
+| `rules/windows/` | Reviewable Windows and Sysmon detection rules | Six initial rules implemented and tested |
 | `backend/app/parsers/` | XML ingestion, explicit registry, pipeline, and source-specific normalization | Implemented v0.2.0 boundary |
 | `backend/app/schemas/` | Future input and transport-boundary contracts; implemented event models live under `backend/app/models/` | Foundation placeholder |
-| `backend/app/detection/` | Rule loading and deterministic evaluation | Foundation placeholder |
+| `backend/app/detection/` | Safe rule loading, shared semantic validation, evaluator, and single-event engine | Implemented; v0.3.0 release pending |
 | `backend/app/investigation/` | Investigation behavior, evidence, timelines, verdicts, and escalation | Foundation placeholder |
-| `backend/app/models/` | Raw and normalized event domain models; other representations remain planned | Event models implemented |
+| `backend/app/models/` | Raw/normalized event, rule, condition, trace, and match contracts | Implemented through DetectionMatch; downstream models planned |
 | `backend/app/services/` | Application-level orchestration across domain responsibilities | Foundation placeholder |
 | `backend/app/core/` | Narrow shared configuration and foundational concerns | Foundation placeholder |
 | `backend/app/api/` | Backend transport boundary | Foundation placeholder |
 | `frontend/` | Analyst-facing web interface | Foundation placeholder |
 | `cases/` | Documented investigation scenarios and expected analyst outcomes | Foundation placeholder |
 | `tests/fixtures/` | Reusable synthetic Windows Event XML telemetry | Seven event fixtures implemented |
-| `tests/integration/` | Cross-component behavior validation | Event-processing integration tests implemented |
-| `backend/tests/` | Backend unit and lightweight smoke tests | Partially established |
-| `docs/` | Architecture, detection, and investigation documentation | Partially established |
+| `tests/integration/` | Cross-component behavior validation | XML-to-normalized-event and XML-to-match integration/failure tests |
+| `backend/tests/` | Models, parsers, loader/semantics, evaluator, engine, rule library, and smoke tests | Implemented component coverage |
+| `docs/` | Architecture, detection, authoring, and future investigation documentation | Event-processing and Detection Engine boundaries documented |
 
 These paths express intended ownership. Several currently contain only placeholders and must not be interpreted as implemented modules.
 
@@ -188,17 +190,17 @@ Controlled telemetry must not include production credentials, secrets, personal 
 
 ## Planned Evolution
 
-The roadmap includes a completed event-processing stage and planned future stages:
+The roadmap distinguishes released stages, implemented work awaiting release, and planned future stages:
 
 - **v0.2.0 — Event processing and normalization:** released and completed, with supported event parsing, validation, and normalized-event contracts.
-- **v0.3.x — Detection engine and detection rules:** introduce the rule format, rule loading, deterministic evaluation, and the initial Windows rule library.
+- **v0.3.0 — Detection Engine:** implementation complete on main; release pending. Includes rule contracts, safe loading and semantic validation, deterministic single-event evaluation, complete traces, six Windows rules, and XML-to-match integration.
 - **v0.4.x — Alert management:** introduce alert generation, alert models, severity handling, lifecycle state, and the analyst alert queue backend.
 - **v0.5.x — Investigation workflow:** introduce triage, related-event analysis, evidence, timelines, analyst notes, verdicts, and escalation workflow.
 - **v0.6.x — IOC and MITRE ATT&CK enrichment:** introduce IOC extraction and enrichment, ATT&CK mappings, and supporting investigation context.
 - **v0.7.x — Investigation cases:** introduce documented investigation scenarios with evidence, timelines, mappings, verdicts, and escalation reports.
 - **v0.8.x — Analyst web interface:** introduce the analyst-facing experience for alerts, investigations, timelines, IOC context, verdicts, and reports.
 
-The v0.2.0 event-processing boundary is released. Every later stage above remains planned; the corresponding versions and capabilities have not been released or implemented. Testing, validation, and documentation should evolve alongside each capability.
+The v0.2.0 event-processing boundary is released. v0.3.0 is implemented but not released; its boundary is `DetectionMatch`. Alert management and every later stage remain planned and unimplemented. Testing, validation, and documentation should evolve alongside each capability.
 
 Module boundaries may be refined as concrete requirements emerge. A distributed design should be considered only if measured constraints justify it; future refactoring should not be driven by speculative scale. Until then, the modular monolith remains the planned deployment and development model.
 
