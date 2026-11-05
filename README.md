@@ -223,7 +223,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
 | v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Released |
 | v0.3.0 — Detection Engine | Detection-rule format, safe/semantic loading, evaluation, and six initial rules | Released |
-| v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned |
+| v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned; contract defined |
 | v0.5.0 — Investigation Workflow | Evidence, timelines, analyst notes, verdicts, and escalation | Planned |
 | v0.6.0 — IOC & MITRE Enrichment | IOC handling and MITRE ATT&CK investigation context | Planned |
 | v0.7.0 — Investigation Cases | Reproducible investigation scenarios and analyst outcomes | Planned |
@@ -239,6 +239,7 @@ Status distinguishes implemented work from published releases and future plans. 
 - [System Architecture](docs/architecture/overview.md) — implemented and planned components, responsibilities, and data flow.
 - [Event Processing Architecture](docs/architecture/event-processing.md) — implemented v0.2.0 pipeline and examples.
 - [Detection Engine Architecture](docs/architecture/detection-engine.md) — released v0.3.0 loading, semantics, evaluation, and `DetectionMatch` boundary.
+- [Alert Management Contract](docs/alert-management-scope.md) — planned v0.4.0 Alert identity, lifecycle, severity/priority, and queue boundary; no runtime implementation yet.
 - [Rule Authoring](docs/detections/rule-authoring.md) — supported fields/operators, safe examples, validation, and testing.
 - [v0.2.0 Release Notes](docs/releases/v0.2.0.md) — published event-processing release scope, validation, and limitations.
 - [v0.3.0 Release Notes](docs/releases/v0.3.0.md) — published Detection Engine release scope, validation, and limitations.
