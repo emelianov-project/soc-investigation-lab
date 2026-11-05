@@ -14,7 +14,6 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictStr,
-    ValidationError,
     field_validator,
     model_validator,
 )
@@ -80,11 +79,15 @@ class Alert(BaseModel):
         if not isinstance(value, DetectionMatch):
             raise ValueError("source_match must be a validated DetectionMatch")
         try:
-            # Revalidate a deep copy: an existing Pydantic instance may have had nested data mutated.
-            data = deepcopy(value.model_dump(mode="python", exclude_unset=True))
-            return DetectionMatch.model_validate(data)
-        except (TypeError, ValueError, ValidationError):
-            raise ValueError("source_match must be a valid true DetectionMatch") from None
+            # Revalidate mutable evidence without emitting serializer warnings containing its values.
+            data = deepcopy(value.model_dump(mode="python", exclude_unset=True, warnings="error"))
+            snapshot = DetectionMatch.model_validate(data, strict=True)
+            # Some field validators can still normalize values in strict mode.
+            if snapshot == value:
+                return snapshot
+        except (TypeError, ValueError):
+            pass
+        raise ValueError("source_match must be a valid true DetectionMatch") from None
 
     @field_validator("created_at", "state_changed_at", "updated_at", mode="before")
     @classmethod
