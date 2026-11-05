@@ -2,7 +2,7 @@
 
 ## Architecture Status
 
-This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. v0.3.0 — Detection Engine is released. Supported Windows Event XML is normalized into `NormalizedEvent`, then evaluated against validated declarative rules to produce `DetectionMatch`. Alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned. Repository directory names alone do not establish implementation. See [Event Processing Architecture](event-processing.md) for the v0.2.0 layer and [Detection Engine Architecture](detection-engine.md) for the implemented v0.3.0 boundary.
+This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. v0.3.0 — Detection Engine is released. Supported Windows Event XML is normalized into `NormalizedEvent`, then evaluated against validated declarative rules to produce `DetectionMatch`. Alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned. Repository directory names alone do not establish implementation. See [Event Processing Architecture](event-processing.md) for the v0.2.0 layer, [Detection Engine Architecture](detection-engine.md) for the implemented v0.3.0 boundary, and the [Alert Management contract](../alert-management-scope.md) for planned v0.4.0 behavior.
 
 The architecture defines conceptual responsibilities and data flow. It does not prescribe low-level classes, database tables, endpoints, or deployment topology.
 

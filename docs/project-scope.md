@@ -108,3 +108,5 @@ v0.3.0 — Detection Engine is released. Typed detection contracts, safe YAML lo
 
 Alert generation/lifecycle, analyst triage, investigation workflows and cases, evidence records and analyst notes, IOC/ATT&CK runtime enrichment, verdicts and escalation, severity/priority workflows, persistence, the backend API, and the analyst web interface remain planned. Stateful/cross-event/time-window correlation is not implemented. Planned product capabilities elsewhere in this document must not be interpreted as currently available functionality.
 
+The [v0.4.0 Alert Management contract](alert-management-scope.md) defines the planned boundary from `DetectionMatch` through an in-process analyst-facing alert queue. It does not implement Alert Management or Investigation.
+
