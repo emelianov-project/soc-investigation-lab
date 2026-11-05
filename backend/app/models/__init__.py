@@ -1,5 +1,6 @@
 """Public domain models for SOC Investigation Lab."""
 
+from .alert import Alert, AlertPriority, AlertSeverity, AlertState
 from .detection import (
     AllCondition,
     AnyCondition,
@@ -28,6 +29,10 @@ from .raw_event import RawWindowsEvent
 
 __all__ = (
     "AllCondition",
+    "Alert",
+    "AlertPriority",
+    "AlertSeverity",
+    "AlertState",
     "AnyCondition",
     "AuthenticationContext",
     "AuthenticationOutcome",
