@@ -2,13 +2,13 @@
 
 ## Architecture Status
 
-This document describes the high-level architecture of SOC Investigation Lab. The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are released. v0.3.0 — Detection Engine is released. Supported Windows Event XML is normalized into `NormalizedEvent`, then evaluated against validated declarative rules to produce `DetectionMatch`. Alerts, investigation, enrichment, persistence, backend API, and analyst web UI remain planned. Repository directory names alone do not establish implementation. See [Event Processing Architecture](event-processing.md) for the v0.2.0 layer, [Detection Engine Architecture](detection-engine.md) for the implemented v0.3.0 boundary, and the [Alert Management contract](../alert-management-scope.md) for planned v0.4.0 behavior.
+The v0.1.0 Project Foundation, v0.2.0 Event Processing, and v0.3.0 Detection Engine milestones are released. **v0.4.0 — Alert Management is implemented, pending release.** Investigation, enrichment, persistence, the backend API, and the analyst web UI remain planned. See the [Event Processing](event-processing.md), [Detection Engine](detection-engine.md), and [Alert Management](alert-management.md) architecture documents for each implemented layer.
 
 The architecture defines conceptual responsibilities and data flow. It does not prescribe low-level classes, database tables, endpoints, or deployment topology.
 
 ## Architectural Style
 
-The Python backend follows a modular-monolith design: one backend application with clear internal module boundaries and explicit domain responsibilities. Parsing, normalization, safe rule loading, semantic validation, and detection evaluation are implemented. Alert handling, investigation, enrichment, persistence, and API behavior are planned within this design rather than as independently deployed services.
+The Python backend follows a modular monolith design with clear internal boundaries. Parsing, normalization, detection, and Alert Management are implemented as in-process modules. Planned investigation, enrichment, persistence, and API behavior fit within the same design.
 
 This style fits the project's deliberately small scope because it supports easier debugging, deterministic local execution, lower operational complexity, straightforward testing, and direct inspection of security logic. Those qualities are especially valuable for an educational and portfolio project.
 
@@ -18,42 +18,30 @@ The conceptual backend shape is:
 Backend application
 ├── Parsing and normalization
 ├── Detection
-├── Alert handling
-├── Investigation
-├── Enrichment
-├── Persistence
-└── API
+├── Alert Management
+├── Investigation (planned)
+├── Enrichment (planned)
+├── Persistence (planned)
+└── API (planned)
 ```
 
-Internal boundaries should remain explicit so responsibilities can be tested independently and refactored later if evidence justifies a different design. Parsing, normalization, and Detection Engine behavior are implemented; Alert handling and all later components remain planned.
+Internal boundaries should remain explicit so responsibilities can be tested independently and refactored later if evidence justifies a different design.
 
 ## High-Level Data Flow
 
-The implemented pipeline ends at `DetectionMatch`: Windows Event XML → `RawWindowsEvent` → parser registry → source normalizer → `NormalizedEvent` → Detection Engine → `DetectionMatch`. The broader flow below continues into planned stages from Alert onward; the dashed edge marks that boundary:
-
-Raw Security Event
-→ Source Parser
-→ Normalized Security Event
-→ Detection Engine
-→ Detection Match
-→ Alert
-→ Initial Triage
-→ Investigation
-→ Evidence, IOC, Timeline, and MITRE Context
-→ Verdict
-→ Severity and Priority
-→ Escalation
+The released Detection Engine ends at `DetectionMatch`. The implemented Alert Management layer consumes that evidence and ends at the in-process analyst queue. The dashed edge marks the start of planned Investigation behavior.
 
 ```mermaid
 flowchart TD
-    A[Raw Security Event] --> B[Parser]
+    A[Windows Event XML] --> B[XML ingestion and source normalization]
     B --> C[Normalized Security Event]
     C --> D[Detection Engine]
     R[Detection Rules] --> D
     D --> E[Detection Match]
-    E -. planned .-> F[Alert]
-    F --> G[Initial Triage]
-    G --> H[Investigation]
+    E --> F[Alert creation]
+    F --> G[Lifecycle, severity, and priority]
+    G --> P[In-process analyst queue]
+    P -. planned .-> H[Investigation]
     H --> I[Evidence]
     H --> J[IOC Context]
     H --> K[Timeline]
@@ -62,23 +50,22 @@ flowchart TD
     J --> M
     K --> M
     L --> M
-    M --> N[Severity and Priority]
-    N --> O[Escalation]
+    M --> O[Escalation]
 ```
 
 The implemented XML ingestion reads one supported raw event representation without making detection decisions. The registry and source normalizers produce a validated, source-independent `NormalizedEvent`. The implemented Detection Engine evaluates one event against validated rules and emits a match only for a TRUE root condition, preserving its complete ordered `ConditionTrace`. It does not correlate multiple events.
 
-In the planned downstream stages, alert management would convert a detection match into analyst-facing work with the event and rule context needed for triage. An investigation would then associate related events, evidence, IOCs, timeline entries, and supported MITRE ATT&CK context. The analyst would use that context to record a False Positive or True Positive verdict, assess severity and priority, and prepare escalation information when required.
+In the planned downstream stages, an investigation would associate related events, evidence, IOCs, timeline entries, and supported MITRE ATT&CK context with an Alert. The analyst would use that context to record a False Positive or True Positive verdict and prepare escalation information when required.
 
 ## Core Domain Objects
 
-The architecture is organized around the following domain concepts. `RawWindowsEvent`, `NormalizedEvent`, `DetectionRule`, `ConditionTrace`, and `DetectionMatch` are implemented typed contracts. Alert and the subsequent workflow concepts remain planned and do not imply implementation classes or storage schemas.
+`RawWindowsEvent`, `NormalizedEvent`, `DetectionRule`, `ConditionTrace`, `DetectionMatch`, and `Alert` are implemented typed contracts. The workflow concepts from Investigation onward are planned.
 
 - **Raw Security Event:** source-shaped Windows Event Log or Sysmon telemetry before normalization.
 - **Normalized Security Event:** a consistent event representation used by detection and investigation components.
 - **Detection Rule (implemented):** bounded declarative criteria and descriptive metadata, validated structurally and semantically during loading.
 - **Detection Match (implemented):** evidence that one specific rule matched one normalized event, with rule identity/version and complete condition trace; not an Alert or verdict.
-- **Alert:** analyst-facing work created from a detection match, including triage context and lifecycle state.
+- **Alert (implemented):** immutable analyst-facing work with owned detection evidence, a caller-supplied identity, UTC timestamps, lifecycle state, severity, and priority.
 - **Investigation:** the record that organizes analysis of an alert and its related activity.
 - **Evidence:** event-derived facts or analyst-selected observations supporting a decision.
 - **IOC Context:** identified indicators and available enrichment relevant to the investigation.
@@ -109,11 +96,11 @@ Detection rules express transparent, reviewable conditions and metadata for obse
 
 The loader safely reads the controlled rule library and validates structure, shared field/type semantics, and duplicate identities before returning a complete rule tuple. The engine filters by category/source and evaluates one normalized event in rule-ID order with three-valued conditions and complete traces. It produces TRUE-only detection matches, not partial results after errors. The shared semantic layer also supports defensive runtime validation. It does not own alert workflow, analyst notes, or verdict decisions. Detailed responsibilities and failure semantics are in [Detection Engine Architecture](detection-engine.md).
 
-The remaining component responsibilities below are planned, not implemented.
-
 ### Alert Management
 
-Alert management turns detection matches into analyst-facing alerts. It owns alert identity, relevant detection context, severity inputs, triage state, and lifecycle transitions required by the alert queue. It should preserve traceability from an alert back to the matching rule and normalized event.
+Alert Management creates validated Alerts from TRUE matches, keeps rule and event evidence detached, and applies explicit lifecycle and policy changes. The stateless queue validates, filters, and sorts the collection supplied by the caller. See [Alert Management Architecture](alert-management.md).
+
+The remaining component responsibilities are planned.
 
 ### Investigation
 
@@ -151,16 +138,17 @@ The intended mapping between architecture responsibilities and repository areas 
 | `backend/app/schemas/` | Future input and transport-boundary contracts; implemented event models live under `backend/app/models/` | Foundation placeholder |
 | `backend/app/detection/` | Safe rule loading, shared semantic validation, evaluator, and single-event engine | Released in v0.3.0 |
 | `backend/app/investigation/` | Investigation behavior, evidence, timelines, verdicts, and escalation | Foundation placeholder |
-| `backend/app/models/` | Raw/normalized event, rule, condition, trace, and match contracts | Implemented through DetectionMatch; downstream models planned |
+| `backend/app/models/` | Raw and normalized events, detection contracts, and Alert contracts | Implemented |
+| `backend/app/alerts/` | Alert creation, lifecycle, severity and priority, and in-process queue | Implemented, pending v0.4.0 release |
 | `backend/app/services/` | Application-level orchestration across domain responsibilities | Foundation placeholder |
 | `backend/app/core/` | Narrow shared configuration and foundational concerns | Foundation placeholder |
 | `backend/app/api/` | Backend transport boundary | Foundation placeholder |
 | `frontend/` | Analyst-facing web interface | Foundation placeholder |
 | `cases/` | Documented investigation scenarios and expected analyst outcomes | Foundation placeholder |
 | `tests/fixtures/` | Reusable synthetic Windows Event XML telemetry | Seven event fixtures implemented |
-| `tests/integration/` | Cross-component behavior validation | XML-to-normalized-event and XML-to-match integration/failure tests |
-| `backend/tests/` | Models, parsers, loader/semantics, evaluator, engine, rule library, and smoke tests | Implemented component coverage |
-| `docs/` | Architecture, detection, authoring, and future investigation documentation | Event-processing and Detection Engine boundaries documented |
+| `tests/integration/` | Cross-component behavior validation | XML-to-event, XML-to-match, and XML-to-Alert integration and failure tests |
+| `backend/tests/` | Models, parsers, detection, Alert operations, and smoke tests | Implemented component coverage |
+| `docs/` | Architecture, detection, authoring, and future investigation documentation | Implemented boundaries documented through Alert Management |
 
 These paths express intended ownership. Several currently contain only placeholders and must not be interpreted as implemented modules.
 
@@ -190,17 +178,15 @@ Controlled telemetry must not include production credentials, secrets, personal 
 
 ## Planned Evolution
 
-The roadmap distinguishes released stages and planned future stages:
+The roadmap distinguishes releases, implemented work pending release, and planned stages:
 
 - **v0.2.0 — Event processing and normalization:** released and completed, with supported event parsing, validation, and normalized-event contracts.
 - **v0.3.0 — Detection Engine:** released. Includes rule contracts, safe loading and semantic validation, deterministic single-event evaluation, complete traces, six Windows rules, and XML-to-match integration.
-- **v0.4.x — Alert management:** introduce alert generation, alert models, severity handling, lifecycle state, and the analyst alert queue backend.
+- **v0.4.0 — Alert Management:** implemented, pending release. Includes Alert creation, lifecycle transitions, independent severity and priority, and in-process queue reads.
 - **v0.5.x — Investigation workflow:** introduce triage, related-event analysis, evidence, timelines, analyst notes, verdicts, and escalation workflow.
 - **v0.6.x — IOC and MITRE ATT&CK enrichment:** introduce IOC extraction and enrichment, ATT&CK mappings, and supporting investigation context.
 - **v0.7.x — Investigation cases:** introduce documented investigation scenarios with evidence, timelines, mappings, verdicts, and escalation reports.
 - **v0.8.x — Analyst web interface:** introduce the analyst-facing experience for alerts, investigations, timelines, IOC context, verdicts, and reports.
-
-The v0.2.0 event-processing boundary is released. v0.3.0 is released; its boundary is `DetectionMatch`. Alert management and every later stage remain planned and unimplemented. Testing, validation, and documentation should evolve alongside each capability.
 
 Module boundaries may be refined as concrete requirements emerge. A distributed design should be considered only if measured constraints justify it; future refactoring should not be driven by speculative scale. Until then, the modular monolith remains the planned deployment and development model.
 

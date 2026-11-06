@@ -23,13 +23,12 @@ The intended workflow is conceptual and follows this lifecycle:
 Security telemetry
 → Event normalization
 → Detection rule evaluation
-→ Alert creation
-→ Initial triage
+→ Alert creation and acknowledgment
+→ Explicit severity, priority, and queue handling
 → Investigation
 → Evidence, IOC, and timeline analysis
 → MITRE ATT&CK mapping
 → False Positive or True Positive verdict
-→ Severity and priority assessment
 → Escalation and recommended actions
 
 Within this workflow, the analyst is expected to:
@@ -80,7 +79,7 @@ Intended project capabilities may include:
 - a backend API; and
 - an analyst-focused web interface.
 
-These are intended capabilities, not a statement that they are currently implemented. Their delivery is governed by the project roadmap and subsequent milestones.
+The [current implementation status](#current-implementation-status) distinguishes available capabilities from roadmap targets.
 
 The project prioritizes explainability, deterministic behavior, reproducible investigations, educational value, testability, and maintainability over enterprise scale, feature count, or ingestion volume.
 
@@ -106,7 +105,7 @@ The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are release
 
 v0.3.0 — Detection Engine is released. Typed detection contracts, safe YAML loading with structural and semantic validation, explicit field resolution, deterministic single-event evaluation, complete condition traces, six initial rules, and XML-to-match integration/failure coverage are implemented. The boundary ends at `DetectionMatch`, not an Alert or analyst verdict. See [Detection Engine Architecture](architecture/detection-engine.md) and [Rule Authoring](detections/rule-authoring.md).
 
-Alert generation/lifecycle, analyst triage, investigation workflows and cases, evidence records and analyst notes, IOC/ATT&CK runtime enrichment, verdicts and escalation, severity/priority workflows, persistence, the backend API, and the analyst web interface remain planned. Stateful/cross-event/time-window correlation is not implemented. Planned product capabilities elsewhere in this document must not be interpreted as currently available functionality.
+**v0.4.0 — Alert Management is implemented, pending release.** It takes a validated `DetectionMatch` and supports Alert creation with detached evidence, explicit lifecycle, severity and priority changes, and deterministic in-process queue reads. See [Alert Management Architecture](architecture/alert-management.md) for the implemented boundary and the [v0.4.0 contract](alert-management-scope.md) for the domain requirements.
 
-The [v0.4.0 Alert Management contract](alert-management-scope.md) defines the planned boundary from `DetectionMatch` through an in-process analyst-facing alert queue. It does not implement Alert Management or Investigation.
+Investigation workflows and cases, related-event analysis, analyst notes, IOC and ATT&CK enrichment, verdicts, escalation, database persistence, the backend API, and the analyst web interface remain planned. The queue operates in memory on Alerts supplied by the caller.
 
