@@ -14,7 +14,7 @@ The primary audience is SOC Level 1 analysts, junior blue-team analysts, and lea
 
 ## Current Status
 
-The repository has released **v0.1.0 — Project Foundation**, **v0.2.0 — Event Processing**, and **v0.3.0 — Detection Engine**. **v0.4.0 — Alert Management is implemented and prepared for publication.** Publication is pending. Investigation and later analyst workflows remain planned.
+The repository has released **v0.1.0 — Project Foundation**, **v0.2.0 — Event Processing**, **v0.3.0 — Detection Engine**, and **v0.4.0 — Alert Management**. v0.5.0 — Investigation Workflow and later analyst workflows remain planned.
 
 | Area | Status |
 | --- | --- |
@@ -28,7 +28,7 @@ The repository has released **v0.1.0 — Project Foundation**, **v0.2.0 — Even
 | Typed normalized contexts, parser registry, and normalization pipeline | Implemented |
 | Detection Engine, semantic rule validation, and complete condition traces | Released in v0.3.0 |
 | Initial declarative detection-rule library | Six rules implemented and tested |
-| Alert creation, lifecycle, explicit severity and priority, and in-process queue | Implemented, pending v0.4.0 release |
+| Alert creation, lifecycle, explicit severity and priority, and in-process queue | Released in v0.4.0 |
 | Investigation, enrichment, verdict, and escalation workflows | Planned |
 | Backend API, persistence, and analyst web interface | Planned |
 
@@ -53,7 +53,7 @@ The Python backend uses a modular monolith design with explicit internal boundar
 
 This approach keeps debugging and local execution straightforward, makes security decisions easier to inspect and test, and avoids infrastructure that is unnecessary for a portfolio lab. Module boundaries remain explicit so they can evolve when concrete requirements justify a change, without introducing speculative microservices.
 
-The released event-processing and detection layers feed the implemented Alert Management layer:
+The event-processing and detection layers feed Alert Management, released in v0.4.0.
 
 ```text
 Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer
@@ -96,7 +96,7 @@ This event-processing implementation was released in v0.2.0.
 
 This implementation ends at `DetectionMatch`; it does not decide maliciousness or create Alerts.
 
-### Alert Management implemented for v0.4.0
+### Alert Management released in v0.4.0
 
 - Immutable Alerts with detached, typed detection evidence and caller-supplied IDs and times.
 - Explicit acknowledgment, closure, and independent severity and priority changes.
@@ -148,7 +148,7 @@ See the [rule inventory and limitations](docs/architecture/detection-engine.md#i
 | `backend/` | Python event processing, detection, Alert Management, and backend tests | Implemented through the in-process Alert queue |
 | `backend/app/models/` | Event, detection, and Alert contracts | Implemented |
 | `backend/app/detection/` | Safe loading, shared semantics, evaluator, and single-event engine | Released in v0.3.0 |
-| `backend/app/alerts/` | Alert creation, lifecycle, severity and priority, and queue operations | Implemented, pending v0.4.0 release |
+| `backend/app/alerts/` | Alert creation, lifecycle, severity and priority, and queue operations | Released in v0.4.0 |
 | `frontend/` | Planned analyst-facing web interface | Foundation placeholder |
 | `rules/windows/` | Transparent declarative Windows rule library | Six tested rules |
 | `datasets/` | Future synthetic, controlled-lab, or public-safe telemetry | Foundation placeholders; no datasets included |
@@ -212,7 +212,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
 | v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Released |
 | v0.3.0 — Detection Engine | Detection-rule format, safe/semantic loading, evaluation, and six initial rules | Released |
-| v0.4.0 — Alert Management | Alert creation, lifecycle, independent severity and priority, and in-process queue | Implemented, release prepared, publication pending |
+| v0.4.0 — Alert Management | Alert creation, lifecycle, independent severity and priority, and in-process queue | Released |
 | v0.5.0 — Investigation Workflow | Evidence, timelines, analyst notes, verdicts, and escalation | Planned |
 | v0.6.0 — IOC & MITRE Enrichment | IOC handling and MITRE ATT&CK investigation context | Planned |
 | v0.7.0 — Investigation Cases | Reproducible investigation scenarios and analyst outcomes | Planned |
@@ -228,12 +228,12 @@ Status distinguishes implemented work from published releases and future plans. 
 - [System Architecture](docs/architecture/overview.md) — implemented and planned components, responsibilities, and data flow.
 - [Event Processing Architecture](docs/architecture/event-processing.md) — implemented v0.2.0 pipeline and examples.
 - [Detection Engine Architecture](docs/architecture/detection-engine.md) — released v0.3.0 loading, semantics, evaluation, and `DetectionMatch` boundary.
-- [Alert Management Architecture](docs/architecture/alert-management.md) — implemented v0.4.0 interfaces, evidence handling, queue behavior, and an offline example.
+- [Alert Management Architecture](docs/architecture/alert-management.md) — released v0.4.0 interfaces, evidence handling, queue behavior, and an offline example.
 - [Alert Management Contract](docs/alert-management-scope.md) — domain requirements for the v0.4.0 boundary.
 - [Rule Authoring](docs/detections/rule-authoring.md) — supported fields/operators, safe examples, validation, and testing.
 - [v0.2.0 Release Notes](docs/releases/v0.2.0.md) — published event-processing release scope, validation, and limitations.
 - [v0.3.0 Release Notes](docs/releases/v0.3.0.md) — published Detection Engine release scope, validation, and limitations.
-- [v0.4.0 Release Notes](docs/releases/v0.4.0.md) — prepared Alert Management release scope, validation, and limitations.
+- [v0.4.0 Release Notes](docs/releases/v0.4.0.md) — release-preparation snapshot with Alert Management scope, validation, and limitations. [Published GitHub Release](https://github.com/emelianov-project/soc-investigation-lab/releases/tag/v0.4.0)
 - [Contributing Guide](CONTRIBUTING.md) — Issue, branch, validation, Pull Request, and merge workflow.
 - [Security and Safe Data Handling Policy](SECURITY.md) — public-repository data and reporting requirements.
 - [Development Tooling](docs/development-tooling.md) — Ruff, mypy, and pre-commit commands.

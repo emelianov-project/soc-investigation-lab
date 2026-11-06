@@ -105,7 +105,7 @@ The v0.1.0 Project Foundation and v0.2.0 Event Processing milestones are release
 
 v0.3.0 — Detection Engine is released. Typed detection contracts, safe YAML loading with structural and semantic validation, explicit field resolution, deterministic single-event evaluation, complete condition traces, six initial rules, and XML-to-match integration/failure coverage are implemented. The boundary ends at `DetectionMatch`, not an Alert or analyst verdict. See [Detection Engine Architecture](architecture/detection-engine.md) and [Rule Authoring](detections/rule-authoring.md).
 
-**v0.4.0 — Alert Management is implemented, pending release.** It takes a validated `DetectionMatch` and supports Alert creation with detached evidence, explicit lifecycle, severity and priority changes, and deterministic in-process queue reads. See [Alert Management Architecture](architecture/alert-management.md) for the implemented boundary and the [v0.4.0 contract](alert-management-scope.md) for the domain requirements.
+**v0.4.0 — Alert Management is released.** It takes a validated `DetectionMatch` and supports Alert creation with detached evidence, explicit lifecycle, severity and priority changes, and deterministic in-process queue reads. See [Alert Management Architecture](architecture/alert-management.md) for the implemented boundary and the [v0.4.0 contract](alert-management-scope.md) for the domain requirements.
 
 Investigation workflows and cases, related-event analysis, analyst notes, IOC and ATT&CK enrichment, verdicts, escalation, database persistence, the backend API, and the analyst web interface remain planned. The queue operates in memory on Alerts supplied by the caller.
 

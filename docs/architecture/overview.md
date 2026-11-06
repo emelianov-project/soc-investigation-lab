@@ -2,7 +2,7 @@
 
 ## Architecture Status
 
-The v0.1.0 Project Foundation, v0.2.0 Event Processing, and v0.3.0 Detection Engine milestones are released. **v0.4.0 — Alert Management is implemented, pending release.** Investigation, enrichment, persistence, the backend API, and the analyst web UI remain planned. See the [Event Processing](event-processing.md), [Detection Engine](detection-engine.md), and [Alert Management](alert-management.md) architecture documents for each implemented layer.
+The v0.1.0 Project Foundation, v0.2.0 Event Processing, v0.3.0 Detection Engine, and v0.4.0 Alert Management milestones are released. Investigation, enrichment, persistence, the backend API, and the analyst web UI remain planned. See the [Event Processing](event-processing.md), [Detection Engine](detection-engine.md), and [Alert Management](alert-management.md) architecture documents for each implemented layer.
 
 The architecture defines conceptual responsibilities and data flow. It does not prescribe low-level classes, database tables, endpoints, or deployment topology.
 
@@ -29,7 +29,7 @@ Internal boundaries should remain explicit so responsibilities can be tested ind
 
 ## High-Level Data Flow
 
-The released Detection Engine ends at `DetectionMatch`. The implemented Alert Management layer consumes that evidence and ends at the in-process analyst queue. The dashed edge marks the start of planned Investigation behavior.
+The v0.3.0 Detection Engine ends at `DetectionMatch`. Alert Management, released in v0.4.0, consumes that evidence and ends at the in-process analyst queue. The dashed edge marks the start of planned Investigation behavior.
 
 ```mermaid
 flowchart TD
@@ -139,7 +139,7 @@ The intended mapping between architecture responsibilities and repository areas 
 | `backend/app/detection/` | Safe rule loading, shared semantic validation, evaluator, and single-event engine | Released in v0.3.0 |
 | `backend/app/investigation/` | Investigation behavior, evidence, timelines, verdicts, and escalation | Foundation placeholder |
 | `backend/app/models/` | Raw and normalized events, detection contracts, and Alert contracts | Implemented |
-| `backend/app/alerts/` | Alert creation, lifecycle, severity and priority, and in-process queue | Implemented, pending v0.4.0 release |
+| `backend/app/alerts/` | Alert creation, lifecycle, severity and priority, and in-process queue | Released in v0.4.0 |
 | `backend/app/services/` | Application-level orchestration across domain responsibilities | Foundation placeholder |
 | `backend/app/core/` | Narrow shared configuration and foundational concerns | Foundation placeholder |
 | `backend/app/api/` | Backend transport boundary | Foundation placeholder |
@@ -178,11 +178,11 @@ Controlled telemetry must not include production credentials, secrets, personal 
 
 ## Planned Evolution
 
-The roadmap distinguishes releases, implemented work pending release, and planned stages:
+The roadmap distinguishes released and planned stages.
 
 - **v0.2.0 — Event processing and normalization:** released and completed, with supported event parsing, validation, and normalized-event contracts.
 - **v0.3.0 — Detection Engine:** released. Includes rule contracts, safe loading and semantic validation, deterministic single-event evaluation, complete traces, six Windows rules, and XML-to-match integration.
-- **v0.4.0 — Alert Management:** implemented, pending release. Includes Alert creation, lifecycle transitions, independent severity and priority, and in-process queue reads.
+- **v0.4.0 — Alert Management** is released. It includes Alert creation, lifecycle transitions, independent severity and priority, and in-process queue reads.
 - **v0.5.x — Investigation workflow:** introduce triage, related-event analysis, evidence, timelines, analyst notes, verdicts, and escalation workflow.
 - **v0.6.x — IOC and MITRE ATT&CK enrichment:** introduce IOC extraction and enrichment, ATT&CK mappings, and supporting investigation context.
 - **v0.7.x — Investigation cases:** introduce documented investigation scenarios with evidence, timelines, mappings, verdicts, and escalation reports.
