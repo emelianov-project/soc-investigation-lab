@@ -29,6 +29,9 @@ def read_alert_snapshot(alert: object) -> tuple[Alert, dict[str, Any]] | None:
         return None
 
     try:
+        # Pydantic iteration hides underscore-prefixed keys injected via model_copy.
+        if vars(alert).keys() != Alert.model_fields.keys():
+            return None
         # Iteration detaches evidence. Reject noncanonical timestamps before the
         # model can normalize values that bypassed validation via model_copy.
         fields = dict(alert)
