@@ -1,6 +1,6 @@
 # Alert Management Architecture
 
-**v0.4.0 — Alert Management is implemented, pending release.** The released
+**v0.4.0 — Alert Management is released.** The
 [v0.3.0 Detection Engine](detection-engine.md) produces `DetectionMatch` values.
 Alert Management consumes one validated match with a TRUE root outcome and
 preserves why the rule matched. The

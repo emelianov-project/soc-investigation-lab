@@ -2,9 +2,9 @@
 
 ## Status and boundary
 
-This is the authoritative contract for v0.4.0 Alert Management. **v0.4.0 is
-implemented, pending release.** v0.3.0 — Detection Engine is released and ends
-at a validated `DetectionMatch`. The v0.4.0 boundary is:
+This is the authoritative contract for the released **v0.4.0 — Alert
+Management**. v0.3.0 — Detection Engine ends at a validated `DetectionMatch`.
+The v0.4.0 boundary is:
 
 ```text
 Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer

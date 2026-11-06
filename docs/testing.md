@@ -41,7 +41,7 @@ database. See [Rule Authoring](detections/rule-authoring.md) for safe examples a
 
 ### Alert Management coverage
 
-v0.4.0 — Alert Management is implemented, pending release. The
+v0.4.0 — Alert Management is released. The
 [architecture and offline example](architecture/alert-management.md) describe
 the implemented boundary.
 

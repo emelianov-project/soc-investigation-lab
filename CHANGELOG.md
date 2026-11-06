@@ -7,7 +7,7 @@ Semantic Versioning.
 
 ## [Unreleased]
 
-## [0.4.0] - Pending publication
+## [0.4.0] - 2026-11-06
 
 ### Added
 
