@@ -6,8 +6,9 @@
 
 `backend/tests/conftest.py` is the shared location for reusable pytest fixtures used by backend tests.
 
-`tests/integration/` contains cross-component event-processing and Detection Engine
-pipeline tests, plus quality checks for the synthetic Windows Event XML fixtures.
+`tests/integration/` contains cross-component event-processing, Detection
+Engine, and Alert Management tests, plus quality checks for the synthetic
+Windows Event XML fixtures.
 
 `tests/fixtures/` contains reusable static fixture data and sample telemetry used by tests.
 
@@ -38,6 +39,28 @@ Tests do not execute command-line text, contact external services, or require a
 database. See [Rule Authoring](detections/rule-authoring.md) for safe examples and
 [Detection Engine Architecture](architecture/detection-engine.md) for the contract.
 
+### Alert Management coverage
+
+v0.4.0 — Alert Management is implemented, pending release. The
+[architecture and offline example](architecture/alert-management.md) describe
+the implemented boundary.
+
+| Layer | Coverage / location |
+| --- | --- |
+| Alert model | [`test_alert.py`](../backend/tests/models/test_alert.py) checks identity and timestamp validation, frozen values, and detached match evidence. |
+| Creation | [`test_creation.py`](../backend/tests/alerts/test_creation.py) checks explicit IDs and times, defaults, strict inputs, evidence isolation, and safe creation errors. |
+| Lifecycle | [`test_lifecycle.py`](../backend/tests/alerts/test_lifecycle.py) checks allowed and forbidden transitions, idempotence, timestamp ordering, and atomic failures. |
+| Severity and priority | [`test_policy.py`](../backend/tests/alerts/test_policy.py) checks independent assignments, active and closed behavior, time validation, and evidence preservation. |
+| Queue | [`test_queue.py`](../backend/tests/alerts/test_queue.py) checks exact filters, total ordering, whole-collection validation, duplicate IDs, and detached output. |
+| XML-to-Alert integration | [`test_alert_management_pipeline.py`](../tests/integration/test_alert_management_pipeline.py) composes public APIs using synthetic Windows Security and Sysmon XML and all six checked-in rules. It verifies full typed evidence, lifecycle and policy changes, queue behavior, and deterministic results. |
+
+Alert integration covers nonmatching XML and failures for malformed or
+unsupported XML, malformed or unsafe YAML, duplicate rule IDs, invalid
+evidence and timestamps, forbidden Alert operations, and invalid or duplicate
+Alerts hidden by filters.
+The tests check that failures leave inputs intact and that diagnostics omit
+synthetic evidence sentinels.
+
 ### Install test dependencies
 
 ```console
@@ -58,7 +81,7 @@ uv run --no-sync pytest
 uv run --no-sync pytest backend/tests
 ```
 
-### Run event-processing and detection integration tests
+### Run integration tests
 
 ```console
 uv run --no-sync pytest tests/integration
@@ -69,6 +92,13 @@ uv run --no-sync pytest tests/integration
 ```console
 uv run --no-sync pytest backend/tests/detection
 uv run --no-sync pytest tests/integration/test_detection_pipeline.py
+```
+
+### Run focused Alert Management tests
+
+```console
+uv run --no-sync pytest backend/tests/models/test_alert.py backend/tests/alerts
+uv run --no-sync pytest tests/integration/test_alert_management_pipeline.py
 ```
 
 ### Run a specific test file

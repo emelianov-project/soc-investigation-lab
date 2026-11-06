@@ -8,27 +8,27 @@ The project favors transparent security logic, deterministic lab data, and expla
 
 A SOC analyst must understand why a detection fired, establish the relevant event context, gather evidence, identify indicators, reconstruct activity, decide whether the alert is a False Positive or True Positive, assess risk, and provide a useful escalation when required.
 
-SOC Investigation Lab is designed to model that lifecycle in a small and understandable educational system. Its implemented event-processing and detection layers use controlled Windows Event Log and Sysmon examples to produce explainable detection matches. Alert handling and investigation decisions remain later milestones.
+SOC Investigation Lab models that lifecycle in a small educational system. The current Python components turn controlled Windows Security and Sysmon XML into explainable matches and Alerts for an in-process analyst queue. Investigation decisions are part of a later milestone.
 
 The primary audience is SOC Level 1 analysts, junior blue-team analysts, and learners developing practical investigation skills. Detection-engineering learners can inspect the initial rule library and its explanations. Later milestones will add escalation outputs for higher-tier analysts reviewing escalation quality.
 
 ## Current Status
 
-The repository has released **v0.1.0 — Project Foundation**, **v0.2.0 — Event Processing**, and **v0.3.0 — Detection Engine**. Windows Event XML ingestion and normalization for seven supported Windows Security and Sysmon event identities feed an operational, deterministic Detection Engine. Safe rule loading includes structural and semantic validation; six initial rules and XML-to-`DetectionMatch` integration are implemented and tested. Alert handling and investigation remain planned.
+The repository has released **v0.1.0 — Project Foundation**, **v0.2.0 — Event Processing**, and **v0.3.0 — Detection Engine**. **v0.4.0 — Alert Management is implemented, pending release.** Investigation and later analyst workflows remain planned.
 
 | Area | Status |
 | --- | --- |
 | Repository and module scaffold | Foundation implemented |
 | Python 3.12 and uv configuration | Implemented |
 | Ruff, mypy, and pre-commit tooling | Implemented |
-| Parser, detection, rule-library, and XML-to-match integration/failure-path tests | Implemented |
+| Parser, detection, rule-library, and XML-to-Alert integration and failure-path tests | Implemented |
 | GitHub Actions backend CI | Implemented |
 | Scope, architecture, contribution, security, and local-development documentation | Implemented |
 | Windows Event XML ingestion and Security/Sysmon normalization | Implemented for seven supported events |
 | Typed normalized contexts, parser registry, and normalization pipeline | Implemented |
 | Detection Engine, semantic rule validation, and complete condition traces | Released in v0.3.0 |
 | Initial declarative detection-rule library | Six rules implemented and tested |
-| Alert management and analyst triage | Planned |
+| Alert creation, lifecycle, explicit severity and priority, and in-process queue | Implemented, pending v0.4.0 release |
 | Investigation, enrichment, verdict, and escalation workflows | Planned |
 | Backend API, persistence, and analyst web interface | Planned |
 
@@ -49,35 +49,19 @@ Detailed goals, boundaries, and non-goals are maintained in the [Project Scope](
 
 ### Application architecture
 
-The planned backend is a modular monolith: one Python application and deployment unit with explicit internal boundaries for parsing, normalization, detection, alert handling, investigation, enrichment, persistence, and API concerns.
+The Python backend uses a modular monolith design with explicit internal boundaries. Parsing, normalization, detection, and Alert Management run in process. Investigation, enrichment, persistence, and API concerns fit within the same design as planned components.
 
 This approach keeps debugging and local execution straightforward, makes security decisions easier to inspect and test, and avoids infrastructure that is unnecessary for a portfolio lab. Module boundaries remain explicit so they can evolve when concrete requirements justify a change, without introducing speculative microservices.
 
-The implemented path extends the released v0.2.0 event-processing prefix with the released v0.3.0 detection layer:
-
-`Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer → NormalizedEvent → Detection Engine → DetectionMatch`
-
-The wider target processing flow continues from `DetectionMatch` into planned stages:
+The released event-processing and detection layers feed the implemented Alert Management layer:
 
 ```text
- DetectionMatch (implemented boundary)
-        ↓
-       Alert
-        ↓
-      Triage
-        ↓
-  Investigation
-        ↓
-Evidence / IOC / Timeline / MITRE
-        ↓
- FP / TP Verdict
-        ↓
-Severity / Priority
-        ↓
-    Escalation
+Windows Event XML → RawWindowsEvent → Parser Registry → Source Normalizer
+  → NormalizedEvent → Detection Engine → DetectionMatch
+  → Alert creation → lifecycle and policy updates → in-process analyst queue
 ```
 
-Parsing, normalization, and detection through `DetectionMatch` are operational. An Alert is not a detection match: Alert generation and all later stages remain planned. See [Event Processing Architecture](docs/architecture/event-processing.md) for the v0.2.0 layer, [Detection Engine Architecture](docs/architecture/detection-engine.md) for the current output boundary, and [System Architecture](docs/architecture/overview.md) for the wider plan.
+The Detection Engine ends at `DetectionMatch`. Alert Management consumes that evidence and ends at the queue. The planned workflow continues with Investigation, evidence and enrichment, verdicts, and escalation. See [Alert Management Architecture](docs/architecture/alert-management.md) and [System Architecture](docs/architecture/overview.md).
 
 ## Features
 
@@ -112,13 +96,18 @@ This event-processing implementation was released in v0.2.0.
 
 This implementation ends at `DetectionMatch`; it does not decide maliciousness or create Alerts.
 
+### Alert Management implemented for v0.4.0
+
+- Immutable Alerts with detached, typed detection evidence and caller-supplied IDs and times.
+- Explicit acknowledgment, closure, and independent severity and priority changes.
+- Deterministic filtering and ordering of a caller-supplied Alert collection.
+
 ### Planned downstream SOC capabilities
 
-- Alert creation, lifecycle management, and analyst triage.
 - Investigation records containing evidence, related activity, timelines, and analyst notes.
 - IOC extraction and contextual enrichment.
 - Evidence-supported MITRE ATT&CK mappings.
-- False Positive and True Positive verdicts with severity and priority assessment.
+- Evidence-based False Positive and True Positive verdicts.
 - Structured escalation reports and investigation cases.
 - A backend API and analyst-focused web interface.
 
@@ -131,14 +120,13 @@ The target analyst workflow is:
 1. Receive a security event from controlled Windows or Sysmon telemetry.
 2. Parse and normalize the source data into a consistent event representation.
 3. Evaluate transparent detection rules and preserve why a rule matched.
-4. Create and triage an analyst-facing alert.
+4. Create and acknowledge an Alert, and assign severity and priority explicitly for queue handling.
 5. Investigate related activity and collect relevant evidence.
 6. Identify IOCs, reconstruct a timeline, and add supported MITRE ATT&CK context.
 7. Record an evidence-driven False Positive or True Positive verdict.
-8. Assess severity and operational priority.
-9. Prepare escalation context and recommended actions when necessary.
+8. Prepare escalation context and recommended actions when necessary.
 
-Steps 2 and 3 are implemented for the seven supported XML event identities and the initial rule library. Step 1 uses controlled fixture/file input, not live collection. Alert creation and steps 4–9 remain planned.
+Step 1 uses controlled fixture or file input. Steps 2–4 are implemented for the supported XML events, initial rules, and in-process Alert operations. Steps 5–8 remain planned.
 
 ## Detection Coverage
 
@@ -157,17 +145,18 @@ See the [rule inventory and limitations](docs/architecture/detection-engine.md#i
 
 | Path | Responsibility | Current state |
 | --- | --- | --- |
-| `backend/` | Python event processing, detection, and backend tests | Event-processing and detection layers implemented; downstream modules remain placeholders |
-| `backend/app/models/` | Event, rule, condition, trace, and match contracts | Implemented |
+| `backend/` | Python event processing, detection, Alert Management, and backend tests | Implemented through the in-process Alert queue |
+| `backend/app/models/` | Event, detection, and Alert contracts | Implemented |
 | `backend/app/detection/` | Safe loading, shared semantics, evaluator, and single-event engine | Released in v0.3.0 |
+| `backend/app/alerts/` | Alert creation, lifecycle, severity and priority, and queue operations | Implemented, pending v0.4.0 release |
 | `frontend/` | Planned analyst-facing web interface | Foundation placeholder |
 | `rules/windows/` | Transparent declarative Windows rule library | Six tested rules |
 | `datasets/` | Future synthetic, controlled-lab, or public-safe telemetry | Foundation placeholders; no datasets included |
 | `cases/` | Planned investigation scenarios and expected analyst outcomes | Foundation placeholder |
-| `docs/` | Scope, architecture, rule authoring, tooling, testing, security, and local-development guidance | Event-processing and Detection Engine boundaries documented |
+| `docs/` | Scope, architecture, rule authoring, tooling, testing, security, and local-development guidance | Implemented boundaries documented through Alert Management |
 | `scripts/` | Future narrowly scoped project and development utilities | Foundation placeholder |
 | `tests/fixtures/` | Synthetic Windows/Sysmon XML input | Seven supported event fixtures |
-| `tests/integration/` | Cross-component normalization and detection validation | XML-to-event and XML-to-match tests implemented |
+| `tests/integration/` | Cross-component normalization, detection, and Alert validation | XML-to-event, XML-to-match, and XML-to-Alert tests |
 | `.github/` | Pull-request CI and future repository collaboration configuration | Backend CI implemented |
 
 Placeholder directories describe intended ownership; they do not demonstrate completed functionality.
@@ -194,7 +183,7 @@ Optionally install the configured local hooks:
 uv run pre-commit install
 ```
 
-There is no runnable end-to-end analyst SOC application yet. XML normalization, rule loading, and single-event detection are available as Python functions, not an application CLI or API. See the [Python integration example](docs/architecture/detection-engine.md#python-integration-example). No application-specific environment variables are required; local conventions are documented in [Local Development](docs/local-development.md).
+The implemented pipeline is available as in-process Python functions. Run the [offline XML-to-Alert example](docs/architecture/alert-management.md#offline-python-example) to see the components together. See [Local Development](docs/local-development.md) for environment conventions.
 
 ## Development
 
@@ -223,7 +212,7 @@ See the [Contributing Guide](CONTRIBUTING.md), [Development Tooling](docs/develo
 | v0.1.0 — Project Foundation | Repository, tooling, testing, CI, documentation, and safe local configuration | Released |
 | v0.2.0 — Event Processing | Windows and Sysmon XML parsing and normalized event contracts | Released |
 | v0.3.0 — Detection Engine | Detection-rule format, safe/semantic loading, evaluation, and six initial rules | Released |
-| v0.4.0 — Alert Management | Alert generation, lifecycle, severity context, and triage queue | Planned; contract defined |
+| v0.4.0 — Alert Management | Alert creation, lifecycle, independent severity and priority, and in-process queue | Implemented, pending release |
 | v0.5.0 — Investigation Workflow | Evidence, timelines, analyst notes, verdicts, and escalation | Planned |
 | v0.6.0 — IOC & MITRE Enrichment | IOC handling and MITRE ATT&CK investigation context | Planned |
 | v0.7.0 — Investigation Cases | Reproducible investigation scenarios and analyst outcomes | Planned |
@@ -239,7 +228,8 @@ Status distinguishes implemented work from published releases and future plans. 
 - [System Architecture](docs/architecture/overview.md) — implemented and planned components, responsibilities, and data flow.
 - [Event Processing Architecture](docs/architecture/event-processing.md) — implemented v0.2.0 pipeline and examples.
 - [Detection Engine Architecture](docs/architecture/detection-engine.md) — released v0.3.0 loading, semantics, evaluation, and `DetectionMatch` boundary.
-- [Alert Management Contract](docs/alert-management-scope.md) — planned v0.4.0 Alert identity, lifecycle, severity/priority, and queue boundary; no runtime implementation yet.
+- [Alert Management Architecture](docs/architecture/alert-management.md) — implemented v0.4.0 interfaces, evidence handling, queue behavior, and an offline example.
+- [Alert Management Contract](docs/alert-management-scope.md) — domain requirements for the v0.4.0 boundary.
 - [Rule Authoring](docs/detections/rule-authoring.md) — supported fields/operators, safe examples, validation, and testing.
 - [v0.2.0 Release Notes](docs/releases/v0.2.0.md) — published event-processing release scope, validation, and limitations.
 - [v0.3.0 Release Notes](docs/releases/v0.3.0.md) — published Detection Engine release scope, validation, and limitations.
