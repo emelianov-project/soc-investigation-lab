@@ -1,10 +1,10 @@
 """Explicit state transitions for immutable Alert values."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from app.models import Alert, AlertState
 
-_ALERT_TIMESTAMPS = ("created_at", "state_changed_at", "updated_at")
+from ._validation import normalize_change_time, read_alert_snapshot, validate_alert_fields
 
 
 class AlertTransitionError(ValueError):
@@ -26,38 +26,17 @@ def close_alert(alert: Alert, at: datetime) -> Alert:
     return _transition(alert, at, AlertState.ACKNOWLEDGED, AlertState.CLOSED)
 
 
-def _normalize_at(at: datetime) -> datetime:
-    try:
-        return Alert.require_aware_utc_instant(at)
-    except Exception:
-        # A caller-provided tzinfo can raise during offset lookup or conversion.
-        pass
-    raise AlertTransitionError("invalid_at", "at") from None
-
-
 def _transition(
     alert: Alert, at: datetime, source_state: AlertState, target_state: AlertState
 ) -> Alert:
-    if not isinstance(alert, Alert):
-        raise AlertTransitionError("invalid_alert", "alert")
-
-    current: Alert | None = None
-    try:
-        # Iteration supplies a detached match. Check canonical timestamps before
-        # validation can normalize a snapshot that bypassed the model.
-        fields = dict(alert)
-        if fields.keys() == Alert.model_fields.keys() and all(
-            isinstance(value, datetime) and value.tzinfo is UTC
-            for value in (fields[name] for name in _ALERT_TIMESTAMPS)
-        ):
-            current = Alert.model_validate(fields, strict=True)
-    except Exception:
-        # Invalid evidence may fail during copying as well as validation.
-        pass
-    if current is None:
+    snapshot = read_alert_snapshot(alert)
+    if snapshot is None:
         raise AlertTransitionError("invalid_alert", "alert") from None
+    current, fields = snapshot
 
-    instant = _normalize_at(at)
+    instant = normalize_change_time(at)
+    if instant is None:
+        raise AlertTransitionError("invalid_at", "at") from None
     if instant < current.updated_at:
         raise AlertTransitionError("out_of_order_at", "at")
     if current.state is target_state:
@@ -66,8 +45,7 @@ def _transition(
         raise AlertTransitionError("forbidden_transition", "state")
 
     fields.update(state=target_state, state_changed_at=instant, updated_at=instant)
-    try:
-        return Alert.model_validate(fields, strict=True)
-    except Exception:
-        pass
-    raise AlertTransitionError("invalid_alert", "alert") from None
+    updated = validate_alert_fields(fields)
+    if updated is None:
+        raise AlertTransitionError("invalid_alert", "alert") from None
+    return updated
