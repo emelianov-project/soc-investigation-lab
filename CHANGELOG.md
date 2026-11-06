@@ -7,6 +7,28 @@ Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.4.0] - Pending publication
+
+### Added
+
+- Typed Alert domain models with explicit identity, lifecycle state, severity, priority, and timestamps.
+- Detached `DetectionMatch` evidence with the full normalized event and ordered condition trace.
+- Deterministic Alert creation with caller-supplied IDs and timezone-aware timestamps.
+- Alert lifecycle operations for acknowledgement and closure.
+- Independent severity and priority management for active Alerts.
+- Stateless in-process Alert queue with typed filters and deterministic ordering.
+- XML-to-Alert integration and failure-path coverage for the six existing detection rules.
+- Alert Management architecture documentation and an offline example.
+
+### Changed
+
+- Shared Alert snapshot and timestamp validation across Alert operations.
+
+### Fixed
+
+- Strict validation of match evidence and safe, controlled failure diagnostics.
+- Rejection of malformed Alert snapshots before transitions, policy updates, or queue filtering.
+
 ## [0.3.0] - 2026-09-27
 
 ### Added
